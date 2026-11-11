@@ -1207,11 +1207,11 @@
                         </div>
                         
                         <div class="filter-role-container" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; scrollbar-width: none;">
-                            <button class="filter-btn active" id="filterAll" onclick="filterByRole('all')">Semua</button>
-                            <button class="filter-btn" id="filterMember" onclick="filterByRole('member')">Member</button>
-                            <button class="filter-btn" id="filterVip" onclick="filterByRole('vip')">VIP</button>
-                            <button class="filter-btn" id="filterReseller" onclick="filterByRole('reseller')">Reseller</button>
-                            <button class="filter-btn" id="filterOwner" onclick="filterByRole('owner')">Owner</button>
+                            <button class="filter-btn active" id="filterAll" data-role="all" onclick="filterByRole('all')">Semua</button>
+                            <button class="filter-btn" id="filterMember" data-role="member" onclick="filterByRole('member')">Member</button>
+                            <button class="filter-btn" id="filterVip" data-role="vip" onclick="filterByRole('vip')">VIP</button>
+                            <button class="filter-btn" id="filterReseller" data-role="reseller" onclick="filterByRole('reseller')">Reseller</button>
+                            <button class="filter-btn" id="filterOwner" data-role="owner" onclick="filterByRole('owner')">Owner</button>
                         </div>
 
                         <div id="userListContainer"></div>
@@ -1294,6 +1294,7 @@
         let paymentMethodSelected = '';
         let selectedTrxIdToCancel = null;
         let isProcessingProof = false;
+        let currentUserListenerRef = null;
         
         const ICONS = {
             member: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
@@ -1541,6 +1542,13 @@
         cancelLogoutBtn.addEventListener('click', () => { logoutModal.classList.remove('active'); });
         confirmLogoutBtn.addEventListener('click', () => {
             logoutModal.classList.remove('active');
+            
+            // Cleanup realtime listener
+            if (currentUserListenerRef) {
+                currentUserListenerRef.off();
+                currentUserListenerRef = null;
+            }
+            
             localStorage.removeItem('novax_session');
             currentUser = null;
             dashboardPage.style.display = 'none';
@@ -1558,6 +1566,12 @@
                 document.getElementById('filterReseller').style.display = 'block';
                 document.getElementById('filterOwner').style.display = 'block';
             }
+            
+            // Reset filter active class
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            const filterAllBtn = document.getElementById('filterAll');
+            if (filterAllBtn) filterAllBtn.classList.add('active');
+            
             currentFilterRole = 'all';
         });
 
@@ -1578,6 +1592,9 @@
             initTools();
             listenToStories();
             updateDateAndPresence();
+            
+            // REALTIME SYNC: role/expired berubah tanpa logout
+            listenToCurrentUserChanges();
             
             document.getElementById('resultRedeemContainer').style.display = 'none';
             document.getElementById('resultRedeemCode').value = '';
@@ -1632,7 +1649,12 @@
             renderUpRoleList();
             listenToTransactionHistory();
         };
-        window.closeUpRoleFull = function() { pageUpRoleFull.classList.remove('active'); };
+        window.closeUpRoleFull = function() { 
+            pageUpRoleFull.classList.remove('active');
+            if (currentUser) {
+                db.ref('payment_proofs').orderByChild('username').equalTo(currentUser.username).off();
+            }
+        };
 
         function renderUpRoleList() {
             const container = document.getElementById('uproleListContainer');
@@ -1672,7 +1694,7 @@
                         } else if (roleHierarchy[u.to] <= currentLevel) {
                             disabledReason = 'SUDAH DIMILIKI';
                         } else {
-                            disabledReason = 'UP ROLE BERTAHAP';
+                            disabledReason = 'BELI';
                         }
                     } else if (u.type === 'exp') {
                         if (currentUser.expired !== 'permanent') {
@@ -1819,6 +1841,13 @@
         window.openPaymentModal = function(targetRole, price, type) {
             currentPurchaseTarget = targetRole;
             currentPurchasePrice = price;
+            
+            // Reset form bukti transfer
+            const proofInput = document.getElementById('paymentProofFile');
+            if (proofInput) proofInput.value = '';
+            const noteInput = document.getElementById('paymentNote');
+            if (noteInput) noteInput.value = '';
+            
             document.getElementById('payAmountText').textContent = 'Rp ' + price.toLocaleString('id-ID');
             document.getElementById('paymentModal').classList.add('active');
         };
@@ -1849,7 +1878,6 @@
 
             const file = fileInput.files[0];
             
-            // TUTUP POP UP DULU
             document.getElementById('paymentDetailModal').classList.remove('active');
             showLoading(true);
             
@@ -1980,6 +2008,69 @@
                 profileMiniRole.innerHTML = `<span class="svg-icon">${roleSvg}</span> ${currentUser.role}`;
                 
                 profileMiniExp.textContent = `Exp: ${formatDate(currentUser.expired)}`;
+            }
+        }
+
+        // ============================================================
+        // FITUR REALTIME SYNC USER (Tanpa Logout)
+        // ============================================================
+        function listenToCurrentUserChanges() {
+            if (!currentUser) return;
+            
+            if (currentUserListenerRef) {
+                currentUserListenerRef.off();
+            }
+            
+            currentUserListenerRef = db.ref('users').orderByChild('username').equalTo(currentUser.username);
+            
+            currentUserListenerRef.on('value', (snapshot) => {
+                if (!snapshot.exists()) return;
+                
+                let dbUser = null;
+                snapshot.forEach(child => {
+                    dbUser = { id: child.key, ...child.val() };
+                });
+                
+                if (!dbUser) return;
+                
+                const roleChanged = dbUser.role !== currentUser.role;
+                const expiredChanged = dbUser.expired !== currentUser.expired;
+                
+                if (roleChanged || expiredChanged) {
+                    const oldRole = currentUser.role;
+                    
+                    currentUser = { ...currentUser, ...dbUser };
+                    localStorage.setItem('novax_session', JSON.stringify(currentUser));
+                    
+                    if (roleChanged) {
+                        showToast(`🎉 Role kamu diupgrade: ${oldRole} → ${currentUser.role}`);
+                    }
+                    if (expiredChanged && !roleChanged) {
+                        showToast(`📅 Masa aktif kamu diperbarui`);
+                    }
+                    
+                    refreshUserDependentUI();
+                }
+            });
+        }
+
+        function refreshUserDependentUI() {
+            if (currentUser.role === 'owner' || currentUser.role === 'reseller' || currentUser.role === 'developer') {
+                navManage.classList.remove('hidden');
+            } else {
+                navManage.classList.add('hidden');
+            }
+            
+            setupProfile();
+            updateHomeProfileCard();
+            setupBugMenu();
+            
+            if (pageUpRoleFull.classList.contains('active')) {
+                renderUpRoleList();
+            }
+            
+            if (currentUser.role === 'owner' || currentUser.role === 'reseller' || currentUser.role === 'developer') {
+                setupManagePage();
             }
         }
 
@@ -2763,7 +2854,8 @@
             
             listenToUserList();
             
-            document.getElementById('redeemType').addEventListener('change', (e) => {
+            // Pakai onchange (bukan addEventListener) untuk cegah listener bertumpuk
+            document.getElementById('redeemType').onchange = (e) => {
                 if (e.target.value === 'role') {
                     document.getElementById('redeemRoleGroup').classList.remove('hidden');
                     document.getElementById('redeemExpGroup').classList.add('hidden');
@@ -2771,7 +2863,7 @@
                     document.getElementById('redeemRoleGroup').classList.add('hidden');
                     document.getElementById('redeemExpGroup').classList.remove('hidden');
                 }
-            });
+            };
         }
         
         createUserBtn.addEventListener('click', () => {
@@ -2863,7 +2955,7 @@
             currentFilterRole = role;
             
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            const activeBtn = Array.from(document.querySelectorAll('.filter-btn')).find(btn => btn.textContent.toLowerCase() === (role === 'all' ? 'semua' : role));
+            const activeBtn = document.querySelector(`.filter-btn[data-role="${role}"]`);
             if (activeBtn) activeBtn.classList.add('active');
 
             renderUserPage(1);
@@ -2911,18 +3003,22 @@
                     let actionButtons = '';
                     
                     let canEdit = false;
-                    if (currentUser.role === 'developer' && !isSelf) canEdit = true;
-                    if (currentUser.role === 'owner' && (u.role === 'member' || u.role === 'vip' || u.role === 'reseller')) canEdit = true;
-                    if (currentUser.role === 'reseller' && (u.role === 'member' || u.role === 'vip')) canEdit = true;
+                    if (isMainOwner) {
+                        canEdit = false;
+                    } else {
+                        if (currentUser.role === 'developer' && !isSelf) canEdit = true;
+                        if (currentUser.role === 'owner' && (u.role === 'member' || u.role === 'vip' || u.role === 'reseller')) canEdit = true;
+                        if (currentUser.role === 'reseller' && (u.role === 'member' || u.role === 'vip')) canEdit = true;
+                    }
 
                     if (canEdit) {
                         actionButtons += `<button class="btn-edit" onclick="openEditUser('${u.id}')">EDIT</button>`;
                     }
                     
+                    // Reseller TIDAK bisa hapus akun siapapun
                     let canDelete = false;
                     if (currentUser.role === 'developer' && !isSelf) canDelete = true;
                     if (currentUser.role === 'owner' && (u.role === 'member' || u.role === 'vip' || u.role === 'reseller')) canDelete = true;
-                    if (currentUser.role === 'reseller' && (u.role === 'member' || u.role === 'vip')) canDelete = true;
 
                     if (canDelete) {
                         actionButtons += `<button onclick="deleteUser('${u.id}', '${u.username}')">HAPUS</button>`;
@@ -2959,7 +3055,12 @@
         }
         
         window.deleteUser = function(id, username) {
-            if (currentUser.role !== 'owner' && currentUser.role !== 'reseller' && currentUser.role !== 'developer') {
+            // Reseller dilarang hapus
+            if (currentUser.role === 'reseller') {
+                showToast('Reseller tidak memiliki izin menghapus akun!');
+                return;
+            }
+            if (currentUser.role !== 'owner' && currentUser.role !== 'developer') {
                 showToast('Akses ditolak!');
                 return;
             }
@@ -2986,6 +3087,12 @@
             db.ref('users/' + id).once('value').then((snapshot) => {
                 const user = snapshot.val();
                 if (!user) return;
+                
+                // Guard isMainOwner
+                if (user.isMainOwner) {
+                    showToast('Akun utama tidak bisa diedit!');
+                    return;
+                }
                 
                 editUserUname.value = user.username;
                 editUserRole.value = user.role;
@@ -3042,6 +3149,12 @@
             db.ref('users/' + editingUserId).once('value').then((snapshot) => {
                 const user = snapshot.val();
                 
+                if (user.isMainOwner) {
+                    showLoading(false);
+                    showToast('Akun utama tidak bisa diedit!');
+                    return;
+                }
+                
                 if (currentUser.role === 'reseller' && user.expired === 'permanent' && expType !== '0') {
                     showLoading(false);
                     showToast('Tidak bisa mengubah waktu expired akun permanent!');
@@ -3066,7 +3179,7 @@
                     }
                 }
 
-                // LOGIKA PENYELESAIAN TRANSAKSI OTOMATIS
+                // Auto-complete transaksi pending
                 return db.ref('payment_proofs').orderByChild('username').equalTo(user.username).once('value').then(trxSnap => {
                     let pendingKey = null;
                     if (trxSnap.exists()) {
@@ -3076,9 +3189,7 @@
                             }
                         });
                     }
-                    // Update user
                     return db.ref('users/' + editingUserId).update(updateData).then(() => {
-                        // Jika ada transaksi pending, set jadi sukses
                         if (pendingKey) {
                             return db.ref('payment_proofs/' + pendingKey).update({ status: 'success' });
                         }
