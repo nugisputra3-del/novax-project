@@ -1,0 +1,3218 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NovaX Crash - One Piece Edition</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+        input, textarea, select, .chat-text { -webkit-user-select: text; user-select: text; }
+
+        :root {
+            --bg-body: #0B1B3D; --bg-main: #F4EEDD; --bg-card: #FFFFFF;
+            --text-dark: #1A1A1A; --text-muted: #555555; --border-color: #111111;
+            --accent: #FFC107; --danger: #E63946; --nav-bg: #FFFFFF;
+            --shadow-offset: 4px; --shadow-hard: var(--shadow-offset) var(--shadow-offset) 0px #111111;
+            --shadow-hard-sm: 2px 2px 0px #111111;
+            --border-thick: 3px solid var(--border-color); --border-thin: 2px solid var(--border-color);
+        }
+
+        html, body { width: 100%; height: 100%; background: var(--bg-body); display: flex; justify-content: center; align-items: center; margin: 0; padding: 0; overflow: hidden; font-family: 'Space Grotesk', sans-serif; }
+        body::before { content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(circle at 50% 50%, transparent 20%, rgba(0,0,0,0.1) 21%, transparent 22%), radial-gradient(circle at 10% 10%, transparent 20%, rgba(0,0,0,0.1) 21%, transparent 22%); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+
+        .svg-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 18px; height: 18px; }
+        .svg-icon svg { width: 100%; height: 100%; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+        .container { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; background: var(--bg-main); position: relative; display: flex; flex-direction: column; overflow: hidden; z-index: 1; }
+        @media (min-width: 481px) { .container { max-width: 420px; height: 95vh; max-height: 900px; border: var(--border-thick); box-shadow: 10px 10px 0px rgba(0,0,0,0.5); border-radius: 12px; } }
+
+        /* INTRO VIDEO */
+        #introFullscreen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 999999; flex-direction: column; }
+        #introFullscreen .intro-video-wrapper { flex: 1; width: 100%; background: #000; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        #introFullscreen .intro-video-wrapper video { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .intro-footer-text { position: absolute; bottom: 40px; left: 0; width: 100%; text-align: center; color: #fff; z-index: 999999; padding: 0 20px; text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000; }
+        .intro-footer-text h1 { font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: 2px; margin-bottom: 4px; color: var(--accent); }
+        .intro-footer-text h2 { font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700; letter-spacing: 4px; color: #fff; }
+        #introFullscreen .skip-btn { position: absolute; top: 40px; right: 24px; background: var(--bg-main); border: var(--border-thick); color: var(--text-dark); padding: 10px 18px; font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; box-shadow: var(--shadow-hard-sm); z-index: 9999999; display: flex; align-items: center; gap: 8px; transition: transform 0.1s ease, box-shadow 0.1s ease; }
+        #introFullscreen .skip-btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px #111; }
+
+        /* AUTH PAGE */
+        #authPage { display: flex; flex-direction: column; gap: 16px; flex: 1; justify-content: center; padding: 24px; position: relative; z-index: 1; overflow-y: auto; animation: fadeIn 0.6s ease; background: linear-gradient(180deg, #F4EEDD 0%, #E8DFC8 100%); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .logo-area { text-align: center; margin-bottom: 8px; }
+        .logo-badge { display: inline-block; background: var(--accent); border: var(--border-thin); color: var(--text-dark); padding: 4px 12px; font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; box-shadow: var(--shadow-hard-sm); transform: rotate(-2deg); }
+        .logo-title { color: var(--text-dark); font-weight: 700; font-size: 32px; letter-spacing: -1px; text-transform: uppercase; text-shadow: 2px 2px 0px rgba(0,0,0,0.1); }
+        .logo-title span { color: var(--danger); text-shadow: none; }
+        .logo-sub { display: block; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dark); font-weight: 700; letter-spacing: 3px; text-transform: uppercase; margin-top: 4px; background: #fff; padding: 2px 8px; border: 1px solid #111; display: inline-block;}
+
+        .input-group { display: flex; flex-direction: column; gap: 4px; }
+        .input-group label { color: var(--text-dark); font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+        .input-group input, .input-group select, .input-group textarea { background: var(--bg-card); border: var(--border-thin); padding: 12px 14px; color: var(--text-dark); font-family: 'Space Mono', monospace; font-size: 13px; outline: none; box-shadow: var(--shadow-hard-sm); transition: 0.2s; width: 100%; resize: none; }
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus { border-color: var(--accent); box-shadow: 2px 2px 0px var(--accent); }
+
+        .btn-3d { background: var(--accent); border: var(--border-thick); color: var(--text-dark); padding: 14px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; margin-top: 8px; cursor: pointer; box-shadow: var(--shadow-hard); display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; letter-spacing: 1.5px; transition: all 0.1s ease; width: 100%; text-decoration: none; }
+        .btn-3d:active { transform: translate(var(--shadow-offset), var(--shadow-offset)); box-shadow: 0px 0px 0px #111; }
+        .btn-3d:disabled { background: #cccccc; color: #888; border-color: #888; box-shadow: none; cursor: not-allowed; transform: none !important; }
+        .btn-secondary { background: var(--bg-card); color: var(--text-dark); }
+        .btn-blue { background: #0066ff; color: #fff; }
+        .error-msg { color: var(--danger); font-family: 'Space Mono', monospace; font-size: 11px; text-align: center; min-height: 16px; font-weight: 700; }
+        .success-msg { color: #00cc66; font-family: 'Space Mono', monospace; font-size: 11px; text-align: center; min-height: 16px; font-weight: 700; }
+
+        /* DASHBOARD */
+        #dashboardPage { display: none; flex-direction: column; flex: 1; overflow: hidden; height: 100%; background: var(--bg-main); }
+        .dash-header { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 16px; border-bottom: var(--border-thick); background: var(--bg-body); flex-shrink: 0; text-align: center; }
+        .header-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; color: #fff; letter-spacing: 1px; text-shadow: 2px 2px 0px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 6px; text-transform: uppercase; }
+        .header-title span { color: var(--accent); }
+        .header-badge { display: inline-block; background: var(--accent); border: 1px solid #111; color: #111; padding: 2px 8px; font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; box-shadow: 1px 1px 0px #111; transform: rotate(-1deg); }
+        .dash-content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; position: relative; }
+        .dash-content::-webkit-scrollbar { width: 0; }
+        .page { display: none; width: 100%; }
+        .page.active { display: flex; flex-direction: column; gap: 16px; animation: slideContent 0.3s ease forwards; }
+        @keyframes slideContent { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card { background: var(--bg-card); border: var(--border-thick); padding: 16px; box-shadow: var(--shadow-hard-sm); transition: transform 0.2s ease; border-radius: 4px; }
+        .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 8px; margin-bottom: 12px; border-bottom: 2px dashed #ccc; padding-bottom: 8px; }
+        .card-title .svg-icon { width: 18px; height: 18px; color: var(--danger); }
+
+        /* HOME */
+        .home-banner { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border: var(--border-thick); box-shadow: var(--shadow-hard-sm); border-radius: 4px; }
+        
+        /* DATE BOX */
+        .date-box { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 12px 16px; border: var(--border-thin); box-shadow: var(--shadow-hard-sm); border-radius: 4px; font-family: 'Space Mono'; font-size: 12px; font-weight: 700; }
+        .date-left { display: flex; flex-direction: column; gap: 4px; }
+        .date-time { color: var(--danger); font-size: 14px; }
+
+        /* STATS GRID (ONLINE & TOTAL USER) */
+        .stats-grid { display: flex; gap: 12px; }
+        .stats-card { flex: 1; background: var(--bg-card); border: var(--border-thin); padding: 12px; box-shadow: var(--shadow-hard-sm); border-radius: 4px; display: flex; flex-direction: column; gap: 8px; }
+        .stats-title { display: flex; align-items: center; gap: 6px; font-family: 'Space Grotesk'; font-size: 12px; font-weight: 700; color: var(--text-dark); }
+        .stats-title .svg-icon { width: 16px; height: 16px; }
+        .stats-value-box { display: flex; align-items: center; }
+
+        .online-list { font-family: 'Space Mono'; font-size: 12px; display: flex; align-items: center; gap: 6px; margin-top: 0; }
+        .online-badge { background: #e6fff0; border: 1px solid #00cc66; color: #00cc66; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .online-badge::before { content: ''; width: 8px; height: 8px; background: #00cc66; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #00cc66; }
+
+        .total-badge { background: #e6f0ff; border: 1px solid #0066ff; color: #0066ff; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .total-badge::before { content: ''; width: 8px; height: 8px; background: #0066ff; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #0066ff; }
+
+        /* UPROLE SECTION (DI HOME) */
+        .uprole-card { margin-top: -4px; }
+        .uprole-entry-btn { background: var(--accent); border: var(--border-thick); color: var(--text-dark); padding: 14px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; margin-top: 4px; cursor: pointer; box-shadow: var(--shadow-hard-sm); display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; letter-spacing: 1.5px; transition: all 0.1s ease; width: 100%; border-radius: 4px; }
+        .uprole-entry-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #111; }
+        .uprole-entry-btn svg { width: 24px; height: 24px; stroke: var(--text-dark); fill: none; stroke-width: 2.5; }
+
+        /* HALAMAN UP ROLE FULL LAYAR */
+        #pageUpRoleFull { position: fixed; top: 0; left: 0; width: 100%; height: 100dvh; background: var(--bg-main); z-index: 9999; padding: 0; display: none; flex-direction: column; }
+        #pageUpRoleFull.active { display: flex; animation: slideInRight 0.3s ease forwards; }
+        .uprole-full-header { display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-body); color: #fff; border-bottom: var(--border-thick); flex-shrink: 0; }
+        .uprole-full-header .back-btn { background: var(--bg-main); border: var(--border-thin); color: var(--text-dark); padding: 6px; cursor: pointer; box-shadow: var(--shadow-hard-sm); display: flex; align-items: center; justify-content: center; border-radius: 4px; }
+        .uprole-full-header .back-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #111; }
+        .uprole-full-title { font-family: 'Space Grotesk'; font-weight: 700; font-size: 16px; }
+        .uprole-full-content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+
+        .note-box { background: #fff3cd; border: 2px solid #ffc107; border-radius: 6px; padding: 12px; font-family: 'Space Mono'; font-size: 11px; color: #856404; line-height: 1.5; box-shadow: var(--shadow-hard-sm); }
+        .note-box strong { color: #856404; }
+
+        .uprole-item-full { display: flex; justify-content: space-between; align-items: center; background: #fff; border: var(--border-thin); padding: 14px; border-radius: 6px; box-shadow: var(--shadow-hard-sm); }
+        .uprole-info-full { display: flex; flex-direction: column; gap: 4px; }
+        .uprole-info-full .title { font-weight: 700; font-size: 14px; color: var(--text-dark); }
+        .uprole-info-full .price { font-family: 'Space Mono'; font-size: 13px; font-weight: 700; color: var(--danger); }
+        
+        /* TOMBOL BELI */
+        .btn-buy-op {
+            background: var(--accent);
+            border: 3px solid #111;
+            color: var(--text-dark);
+            padding: 8px 20px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 2px 2px 0px #111;
+            border-radius: 6px;
+            transition: 0.1s;
+            white-space: nowrap;
+        }
+        .btn-buy-op:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #111; }
+        
+        /* TOMBOL DISABLED (ABU-ABU) */
+        .btn-buy-op:disabled {
+            background: #cccccc;
+            border-color: #888;
+            color: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none !important;
+        }
+
+        /* RIWAYAT TRANSAKSI */
+        .history-card { background: #f9f9f9; border: var(--border-thin); border-radius: 6px; padding: 12px; box-shadow: var(--shadow-hard-sm); margin-top: 16px; }
+        .history-title { font-family: 'Space Grotesk'; font-weight: 700; font-size: 13px; margin-bottom: 8px; border-bottom: 1px dashed #ccc; padding-bottom: 4px; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #ccc; padding: 8px 0; font-size: 12px; }
+        .history-item:last-child { border-bottom: none; }
+        .history-item .info { display: flex; flex-direction: column; gap: 2px; }
+        .history-item .name { font-weight: 700; }
+        .history-item .date { font-family: 'Space Mono'; font-size: 10px; color: #666; }
+        .status-pending { background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 10px; font-family: 'Space Mono'; font-size: 10px; font-weight: 700; border: 1px solid #856404; }
+        .status-success { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 10px; font-family: 'Space Mono'; font-size: 10px; font-weight: 700; border: 1px solid #155724; }
+        .status-canceled { background: #f8d7da; color: #721c24; padding: 2px 8px; border-radius: 10px; font-family: 'Space Mono'; font-size: 10px; font-weight: 700; border: 1px solid #721c24; }
+        
+        .btn-cancel-tr {
+            background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 4px 8px; font-family: 'Space Mono'; font-size: 10px; font-weight: 700; cursor: pointer; border-radius: 3px; transition: 0.1s;
+        }
+        .btn-cancel-tr:active { background: var(--danger); color: #fff; }
+
+        /* STORY SECTION */
+        .story-section { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; margin-top: -4px; }
+        .story-section::-webkit-scrollbar { display: none; }
+        .story-item { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; }
+        .story-avatar { width: 56px; height: 56px; border-radius: 50%; border: 3px solid var(--accent); padding: 2px; background: #fff; position: relative; box-shadow: 2px 2px 0px #111; display: flex; justify-content: center; align-items: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; color: var(--text-dark); }
+        .story-item.add-story .story-avatar { border-color: var(--danger); background: var(--bg-main); }
+        .story-item.add-story .story-avatar::after { content: '+'; position: absolute; bottom: -2px; right: -2px; background: var(--danger); color: #fff; width: 20px; height: 20px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; border: 2px solid #fff; }
+        .story-name { font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; color: var(--text-dark); max-width: 60px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+
+        /* PROFILE CARD MINI DI HOME */
+        .profile-card-mini {
+            display: flex; align-items: center; gap: 12px;
+            background: #fff; border: var(--border-thick); border-radius: 8px;
+            padding: 12px; box-shadow: var(--shadow-hard-sm);
+            margin-top: -4px;
+        }
+        .profile-mini-avatar {
+            width: 50px; height: 50px; border-radius: 50%;
+            background: var(--danger); border: 2px solid #111;
+            display: flex; justify-content: center; align-items: center;
+            font-family: 'Space Grotesk'; font-weight: 700; font-size: 22px; color: #fff;
+            box-shadow: 2px 2px 0px #111;
+        }
+        .profile-mini-info {
+            flex: 1; display: flex; flex-direction: column; gap: 2px;
+        }
+        .profile-mini-info .welcome { font-family: 'Space Mono'; font-size: 10px; color: var(--text-muted); }
+        .profile-mini-info .name { font-family: 'Space Grotesk'; font-size: 16px; font-weight: 700; color: var(--text-dark); line-height: 1.2; }
+        
+        .profile-mini-role {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-family: 'Space Mono'; font-size: 9px; font-weight: 700;
+            padding: 2px 8px; text-transform: uppercase; border-radius: 12px;
+            margin-top: 4px; border: 2px solid currentColor;
+            background: #fff; box-shadow: 1px 1px 0px #111;
+            align-self: flex-start;
+        }
+        .profile-mini-role .svg-icon { width: 10px; height: 10px; }
+        .profile-mini-role.role-member { color: #0066ff; }
+        .profile-mini-role.role-vip { color: #ffcc00; }
+        .profile-mini-role.role-reseller { color: #00cc66; }
+        .profile-mini-role.role-owner { color: #cc00ff; }
+        .profile-mini-role.role-developer { color: #8B0000; }
+
+        .profile-mini-exp {
+            display: flex; align-items: center; gap: 4px; font-family: 'Space Mono'; font-size: 9px; font-weight: 700; color: var(--text-muted); margin-top: 4px;
+        }
+        .profile-mini-brand {
+            background: #f0f0f0; border: 1px solid #111; color: var(--text-dark);
+            padding: 4px 8px; font-family: 'Space Grotesk'; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+            border-radius: 4px; white-space: nowrap;
+        }
+
+        .contact-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #229ED9; border: var(--border-thin); color: #fff; padding: 12px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; text-decoration: none; box-shadow: var(--shadow-hard-sm); transition: all 0.1s ease; width: 100%; border-radius: 4px; cursor: pointer; }
+        .contact-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #111; }
+
+        /* GLOBAL CHAT FULLSCREEN */
+        #pageGlobalChat { position: fixed; top: 0; left: 0; width: 100%; height: 100dvh; background: var(--bg-main); z-index: 9999; padding: 0; display: none; flex-direction: column; }
+        #pageGlobalChat.active { display: flex; animation: slideInRight 0.3s ease forwards; }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .full-chat-header { display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-body); color: #fff; border-bottom: var(--border-thick); flex-shrink: 0; }
+        .full-chat-header .back-btn { background: var(--bg-main); border: var(--border-thin); color: var(--text-dark); padding: 6px; cursor: pointer; box-shadow: var(--shadow-hard-sm); display: flex; align-items: center; justify-content: center; border-radius: 4px; }
+        .full-chat-header .back-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #111; }
+        .full-chat-title { font-family: 'Space Grotesk'; font-weight: 700; font-size: 16px; }
+        .chat-container-full { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #f9f9f9; }
+        .chat-messages-full { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
+        .chat-messages-full::-webkit-scrollbar { width: 4px; }
+        .chat-messages-full::-webkit-scrollbar-thumb { background: #ccc; }
+        
+        .chat-bubble { background: #fff; border: 1px solid #111; padding: 8px; border-radius: 4px; max-width: 85%; width: fit-content; font-family: 'Space Mono'; font-size: 11px; position: relative; word-break: break-word; }
+        .chat-bubble.my-msg { align-self: flex-end; background: #dcf8c6; border-color: #111; }
+        .chat-bubble-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 9px; color: #555; font-weight: 700; gap: 10px; }
+        .chat-role-tag { display: inline-flex; align-items: center; gap: 2px; font-size: 9px; font-family: 'Space Mono'; font-weight: 700; padding: 0px 4px; border-radius: 3px; margin-left: 4px; text-transform: uppercase; }
+        .chat-role-tag svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 2.5; }
+        .chat-role-member { background: #e6f0ff; color: #0066ff; }
+        .chat-role-vip { background: #fff8e6; color: #ffcc00; }
+        .chat-role-reseller { background: #e6fff0; color: #00cc66; }
+        .chat-role-owner { background: #f9e6ff; color: #cc00ff; }
+        .chat-role-developer { background: #ffe6e6; color: #8B0000; }
+        .chat-bubble-header .del-btn { background: none; border: none; color: red; cursor: pointer; font-weight: bold; font-size: 12px; margin-left: 8px; }
+        .chat-input-wrapper-full { display: flex; border-top: var(--border-thick); flex-shrink: 0; }
+        .chat-input-wrapper-full input { flex: 1; border: none; padding: 16px; font-family: 'Space Mono'; font-size: 13px; outline: none; }
+        .chat-input-wrapper-full button { background: var(--accent); border: none; border-left: var(--border-thick); color: var(--text-dark); padding: 0 20px; font-weight: 700; cursor: pointer; }
+
+        /* BUG */
+        .video-box { width: 100%; aspect-ratio: 16/9; border: var(--border-thin); background: #000; margin-bottom: 12px; overflow: hidden; position: relative; }
+        .video-box video { width: 100%; height: 100%; object-fit: cover; }
+
+        /* TOOLS (GATEWAY UI) */
+        .tools-gateway-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .tool-gateway-card { background: var(--bg-card); border: var(--border-thin); padding: 12px; box-shadow: var(--shadow-hard-sm); cursor: pointer; transition: 0.1s; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; border-radius: 6px; }
+        .tool-gateway-card:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #111; }
+        .tool-gateway-icon { width: 44px; height: 44px; border-radius: 8px; border: 2px solid #111; display: flex; justify-content: center; align-items: center; color: #fff; box-shadow: 2px 2px 0px rgba(0,0,0,0.2); }
+        .tool-gateway-icon svg { width: 24px; height: 24px; stroke: #fff; }
+        .tool-gateway-text { font-family: 'Space Grotesk'; font-weight: 700; font-size: 12px; line-height: 1.2; color: var(--text-dark); }
+        
+        .tool-detail-page { display: none; flex-direction: column; gap: 12px; }
+        .tool-detail-page.active { display: flex; animation: fadeInPage 0.3s ease; }
+        .tool-detail-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .back-btn { background: var(--bg-card); border: var(--border-thin); color: var(--text-dark); padding: 6px 10px; cursor: pointer; box-shadow: var(--shadow-hard-sm); display: flex; align-items: center; justify-content: center; font-weight: 700; border-radius: 4px; }
+        .back-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #111; }
+        .tool-detail-title { font-family: 'Space Grotesk'; font-weight: 700; font-size: 16px; }
+        .tool-result-box { background: #f0f0f0; border: 1px solid #111; padding: 10px; font-family: 'Space Mono'; font-size: 12px; margin-top: 10px; word-break: break-all; display: none; position: relative; border-radius: 4px; }
+        .copy-btn { position: absolute; top: 5px; right: 5px; background: var(--danger); color: #fff; border: 1px solid #111; padding: 4px 8px; font-size: 10px; cursor: pointer; font-family: 'Space Mono'; font-weight: 700; border-radius: 3px; }
+        .copy-btn:active { transform: scale(0.95); }
+
+        .calc-display { background: #222; color: #fff; font-family: 'Space Mono', monospace; font-size: 32px; text-align: right; padding: 20px; border-radius: 8px; margin-bottom: 12px; overflow-x: auto; border: 2px solid #111; }
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .calc-btn { background: var(--bg-card); border: var(--border-thin); color: var(--text-dark); font-size: 18px; font-weight: 700; padding: 15px 0; cursor: pointer; border-radius: 6px; box-shadow: 2px 2px 0px #111; transition: 0.1s; font-family: 'Space Grotesk', sans-serif; }
+        .calc-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #111; }
+        .calc-btn.op { background: var(--accent); }
+        .calc-btn.eq { background: var(--danger); color: #fff; }
+
+        /* PROFILE */
+        .profile-header-box { background-image: url('https://files.catbox.moe/s1tm43.jpg'); background-size: cover; background-position: center; border: var(--border-thin); border-radius: 8px; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; box-shadow: var(--shadow-hard-sm); margin-bottom: 16px; position: relative; overflow: hidden; }
+        .profile-header-box::before { content: ''; position: absolute; inset: 0; background: rgba(11, 27, 61, 0.7); z-index: 1; }
+        .profile-avatar-big, .profile-username, #profRoleTag { position: relative; z-index: 2; }
+        .profile-avatar-big { width: 80px; height: 80px; background: var(--danger); border: var(--border-thick); display: flex; align-items: center; justify-content: center; color: #fff; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 32px; border-radius: 50%; box-shadow: 4px 4px 0px #111; }
+        .profile-username { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 22px; color: #fff; letter-spacing: 1px; text-shadow: 1px 1px 0px #111;}
+        .role-tag-profile { display: inline-flex; align-items: center; gap: 6px; font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; padding: 6px 14px; border: 2px solid currentColor; text-transform: uppercase; border-radius: 20px; background: #fff; box-shadow: 2px 2px 0px #111; }
+        .role-tag-profile .svg-icon { width: 16px; height: 16px; }
+        .role-member { color: #0066ff; border-color: #0066ff; }
+        .role-vip { color: #ffcc00; border-color: #ffcc00; }
+        .role-reseller { color: #00cc66; border-color: #00cc66; }
+        .role-owner { color: #cc00ff; border-color: #cc00ff; }
+        .role-developer { color: #8B0000; border-color: #8B0000; }
+        .profile-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ccc; font-family: 'Space Mono', monospace; font-size: 12px; }
+        .profile-row .label { color: var(--text-muted); }
+        .profile-row .value { font-weight: 700; color: var(--text-dark); }
+
+        /* MANAGE */
+        .user-list-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #ccc; }
+        .user-list-row:last-child { border-bottom: none; }
+        .user-row-info .uname { font-weight: 700; font-size: 13px; font-family: 'Space Grotesk'; }
+        .user-row-info .uexp { font-family: 'Space Mono'; font-size: 9px; color: var(--text-muted); }
+        .user-row-actions { display: flex; gap: 6px; }
+        .user-row-actions button { background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 4px 8px; font-family: 'Space Mono'; font-size: 10px; font-weight: 700; cursor: pointer; transition: 0.2s; border-radius: 3px;}
+        .user-row-actions button:hover { background: var(--danger); color: #fff; }
+        .user-row-actions button.btn-edit { border-color: #0066ff; color: #0066ff; }
+        .user-row-actions button.btn-edit:hover { background: #0066ff; color: #fff; }
+
+        /* PAGINATION & REDEEM */
+        #paginationContainer { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; justify-content: center; }
+        .page-num-btn { padding: 8px 12px; border-radius: 8px; border: 2px solid #111; font-family: 'Space Mono'; font-weight: 700; cursor: pointer; box-shadow: 2px 2px 0px #111; transition: 0.1s; }
+        .page-num-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #111; }
+        .page-num-btn.active { background: #0066ff; color: #fff; }
+        .page-num-btn:not(.active) { background: #fff; color: #111; }
+
+        /* BOTTOM NAV */
+        .bottom-nav { display: flex; border-top: var(--border-thick); background: var(--nav-bg); flex-shrink: 0; }
+        .nav-btn { flex: 1; background: transparent; border: none; padding: 10px 0; font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700; color: var(--text-muted); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; border-right: 1px solid #ddd; transition: background 0.2s ease, color 0.2s ease; position: relative; }
+        .nav-btn:last-child { border-right: none; }
+        .nav-btn.active { background: var(--bg-main); color: var(--danger); }
+        .nav-btn.active::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: var(--accent); }
+        .nav-btn:active:not(.active) { background: #eee; }
+        .nav-btn .svg-icon { width: 20px; height: 20px; transition: none; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 99999; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: var(--bg-card); border: var(--border-thick); padding: 24px; width: 90%; max-width: 320px; box-shadow: 6px 6px 0px #111; text-align: center; animation: popIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; border-radius: 8px; }
+        @keyframes popIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; color: var(--text-dark); margin-bottom: 20px; line-height: 1.4; }
+        .modal-actions { display: flex; gap: 12px; justify-content: center; }
+        .modal-btn { flex: 1; border: var(--border-thin); padding: 10px; font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-hard-sm); transition: all 0.1s ease; border-radius: 4px; }
+        .modal-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #111; }
+        .modal-btn-yes { background: var(--danger); color: #fff; }
+        .modal-btn-no { background: var(--bg-main); color: var(--text-dark); }
+
+        /* PAYMENT MODAL */
+        .pay-option { display: flex; align-items: center; gap: 12px; padding: 12px; border: var(--border-thin); border-radius: 6px; margin-bottom: 10px; cursor: pointer; transition: 0.1s; box-shadow: var(--shadow-hard-sm); background: #fff; text-align: left; }
+        .pay-option:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #111; }
+        .pay-option .icon { font-size: 20px; }
+        .pay-option .text { font-family: 'Space Grotesk'; font-weight: 700; font-size: 14px; color: var(--text-dark); }
+
+        .hidden { display: none !important; }
+        
+        .markdown-body { font-family: 'Space Grotesk', sans-serif; font-size: 13px; line-height: 1.5; }
+        .markdown-body h1, .markdown-body h2 { border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 8px; margin-top: 8px;}
+        .markdown-body p { margin-bottom: 8px; }
+        .markdown-body ul, .markdown-body ol { padding-left: 20px; margin-bottom: 8px; }
+
+        .contact-option-btn { display: flex; align-items: center; gap: 12px; padding: 14px; border: var(--border-thin); box-shadow: var(--shadow-hard-sm); font-family: 'Space Grotesk'; font-weight: 700; font-size: 14px; text-decoration: none; color: var(--text-dark); border-radius: 6px; transition: 0.1s; margin-bottom: 10px; }
+        .contact-option-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #111; }
+        .contact-option-btn.tele { background: #E1F5FE; color: #0088cc; }
+        .contact-option-btn.wa { background: #E8F5E9; color: #25D366; }
+        .contact-option-btn .svg-icon { width: 24px; height: 24px; }
+
+        #storyViewerModal .modal-box { padding: 0; overflow: hidden; position: relative; max-width: 350px; }
+        .story-viewer-img { width: 100%; aspect-ratio: 9/16; background: var(--bg-body); display: flex; justify-content: center; align-items: center; color: #fff; text-align: center; font-family: 'Space Grotesk'; font-size: 24px; font-weight: 700; padding: 20px; word-break: break-word; }
+        .story-viewer-header { position: absolute; top: 0; left: 0; width: 100%; padding: 12px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); z-index: 2; }
+        .story-viewer-user { color: #fff; font-family: 'Space Mono'; font-size: 12px; font-weight: 700; }
+        .story-close-btn { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; }
+
+        /* FILTER ROLE BUTTONS */
+        .filter-role-container::-webkit-scrollbar { display: none; }
+        .filter-btn {
+            background: #fff; border: var(--border-thin); color: var(--text-dark);
+            padding: 6px 12px; font-family: 'Space Mono'; font-size: 11px; font-weight: 700;
+            border-radius: 20px; cursor: pointer; box-shadow: var(--shadow-hard-sm);
+            white-space: nowrap; transition: 0.1s;
+        }
+        .filter-btn.active {
+            background: var(--accent); color: var(--text-dark);
+            transform: translate(1px, 1px); box-shadow: 1px 1px 0px #111;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast" style="position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--bg-main);border:var(--border-thin);padding:10px 20px;font-family:'Space Mono';font-size:12px;font-weight:700;box-shadow:var(--shadow-hard-sm);z-index:99999;display:none;text-align:center;min-width:200px;border-radius:4px;"></div>
+
+    <div id="loadingOverlay" style="position:fixed;inset:0;background:rgba(11, 27, 61, 0.85);display:none;justify-content:center;align-items:center;z-index:99999;">
+        <div style="background:var(--bg-main);border:var(--border-thick);padding:20px;box-shadow:var(--shadow-hard);font-family:'Space Mono';font-weight:700;text-align:center;border-radius:8px;">
+            <div style="width:20px;height:20px;border:3px solid #ddd;border-top-color:var(--danger);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px;"></div>
+            MEMPROSES...
+        </div>
+    </div>
+    <style>@keyframes spin{100%{transform:rotate(360deg);}}</style>
+
+    <!-- MODAL KONFIRMASI KELUAR -->
+    <div class="modal-overlay" id="logoutModal">
+        <div class="modal-box">
+            <div class="modal-title">Apakah anda yakin<br>ingin keluar?</div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-no" id="cancelLogoutBtn">TIDAK</button>
+                <button class="modal-btn modal-btn-yes" id="confirmLogoutBtn">YA, KELUAR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL KONTAK KAMI -->
+    <div class="modal-overlay" id="contactModal">
+        <div class="modal-box" style="padding: 20px; text-align: left;">
+            <div class="modal-title" style="text-align: center; margin-bottom: 16px;">Pilih Layanan Kontak</div>
+            
+            <a href="https://t.me/VbotStore" target="_blank" class="contact-option-btn tele">
+                <span class="svg-icon"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></span>
+                Telegram Admin
+            </a>
+            
+            <a href="https://whatsapp.com/channel/0029VbEE6li0lwgxhchEu217" target="_blank" class="contact-option-btn wa">
+                <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span>
+                Channel WhatsApp
+            </a>
+
+            <button class="btn-3d btn-secondary" onclick="document.getElementById('contactModal').classList.remove('active')" style="margin-top: 8px;">TUTUP</button>
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH STORY -->
+    <div class="modal-overlay" id="addStoryModal">
+        <div class="modal-box">
+            <div class="modal-title">Tambah Story (Teks)</div>
+            <div class="input-group" style="margin-bottom: 16px;">
+                <textarea id="storyInputText" rows="4" placeholder="Apa yang sedang terjadi?" style="text-align: left;"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-no" onclick="document.getElementById('addStoryModal').classList.remove('active')">BATAL</button>
+                <button class="modal-btn modal-btn-yes" onclick="submitStory()" style="background: var(--accent); color: var(--text-dark);">POSTING</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL LIHAT STORY -->
+    <div class="modal-overlay" id="storyViewerModal">
+        <div class="modal-box">
+            <div class="story-viewer-header">
+                <div class="story-viewer-user" id="viewerStoryUser">User</div>
+                <button class="story-close-btn" onclick="document.getElementById('storyViewerModal').classList.remove('active')">&times;</button>
+            </div>
+            <div class="story-viewer-img" id="viewerStoryText">Story Content</div>
+            <div style="padding: 10px; background: #fff; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-family:'Space Mono'; font-size:10px;" id="viewerStoryTime">Baru saja</span>
+                <button id="deleteStoryBtn" class="modal-btn modal-btn-yes" style="display:none; padding: 4px 8px; flex:none;" onclick="deleteStory()">HAPUS STORY</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDIT USER (ROLE & EXPIRED) -->
+    <div class="modal-overlay" id="editUserModal">
+        <div class="modal-box" style="text-align: left;">
+            <div class="modal-title" style="text-align: center; margin-bottom: 16px;">Edit Pengguna</div>
+            
+            <div class="input-group" style="margin-bottom: 12px;">
+                <label>Username</label>
+                <input type="text" id="editUserUname" disabled style="background: #eee;">
+            </div>
+            
+            <div class="input-group" style="margin-bottom: 12px;">
+                <label>Ubah Role</label>
+                <select id="editUserRole">
+                    <option value="member">Member</option>
+                    <option value="vip">VIP</option>
+                    <option value="reseller" id="editOptReseller">Reseller</option>
+                    <option value="owner" id="editOptOwner">Owner</option>
+                </select>
+            </div>
+
+            <div class="input-group" style="margin-bottom: 16px;">
+                <label>Tambah Waktu (Expired)</label>
+                <select id="editUserExpType">
+                    <option value="0">Tidak ditambah</option>
+                    <option value="1">+1 Hari</option>
+                    <option value="7">+7 Hari</option>
+                    <option value="15">+15 Hari</option>
+                    <option value="30">+30 Hari</option>
+                    <option value="permanent" id="editOptPermanent">Jadikan Permanent</option>
+                </select>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-no" onclick="document.getElementById('editUserModal').classList.remove('active')">BATAL</button>
+                <button class="modal-btn modal-btn-yes" onclick="saveUserEdit()" style="background: #0066ff; color: #fff;">SIMPAN</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PEMBAYARAN UPROLE -->
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal-box" style="text-align: left; max-width: 340px;">
+            <div class="modal-title" style="text-align: center; margin-bottom: 12px;">Pilih Metode Pembayaran</div>
+            <div id="payAmountText" style="text-align: center; font-family: 'Space Mono'; font-weight: 700; color: var(--danger); margin-bottom: 16px; font-size: 16px;">Rp 0</div>
+            
+            <div class="pay-option" onclick="showPaymentDetail('qris')">
+                <span class="icon">📸</span>
+                <div class="text">QRIS (Scan QR)</div>
+            </div>
+            <div class="pay-option" onclick="showPaymentDetail('dana')">
+                <span class="icon">💳</span>
+                <div class="text">DANA (Transfer)</div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 16px;">
+                <button class="modal-btn modal-btn-no" onclick="document.getElementById('paymentModal').classList.remove('active')">TUTUP</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETAIL PEMBAYARAN & UPLOAD BUKTI -->
+    <div class="modal-overlay" id="paymentDetailModal">
+        <div class="modal-box" style="text-align: left; max-width: 340px;">
+            <div class="modal-title" style="text-align: center; margin-bottom: 12px;" id="paymentDetailTitle">Detail Pembayaran</div>
+            
+            <div id="paymentQrisContainer" style="text-align: center; margin-bottom: 12px; display: none;">
+                <img src="https://files.catbox.moe/whyd8g.jpg" alt="QRIS" style="width: 100%; max-width: 250px; border: 2px solid #111; border-radius: 8px;">
+            </div>
+            <div id="paymentDanaContainer" style="text-align: center; font-family: 'Space Mono'; font-weight: 700; margin-bottom: 12px; display: none;">
+                <p>Nomor DANA:</p>
+                <p style="font-size: 18px; color: var(--danger); margin: 8px 0;">6283867647296</p>
+                <p style="font-size: 10px; color: #666;">Atas Nama: nugi s</p>
+            </div>
+
+            <hr style="margin: 12px 0; border: 1px dashed #ccc;">
+
+            <div class="input-group" style="margin-bottom: 12px;">
+                <label>Unggah Bukti Transfer</label>
+                <input type="file" id="paymentProofFile" accept="image/*" style="padding: 8px; font-size: 12px;">
+            </div>
+            <div class="input-group" style="margin-bottom: 12px;">
+                <label>Catatan (Opsional)</label>
+                <textarea id="paymentNote" rows="2" placeholder="Contoh: Saya sudah tf 2k"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-no" onclick="document.getElementById('paymentDetailModal').classList.remove('active')">BATAL</button>
+                <button class="modal-btn modal-btn-yes" id="submitProofBtn" onclick="submitPaymentProof()" style="background: #00cc66;">KIRIM BUKTI</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PEMBATALAN TRANSAKSI -->
+    <div class="modal-overlay" id="cancelTransactionModal">
+        <div class="modal-box" style="text-align: left;">
+            <div class="modal-title" style="text-align: center; margin-bottom: 16px;">Batalkan Transaksi</div>
+            <p style="font-size: 11px; font-family: 'Space Mono'; color: var(--danger); margin-bottom: 12px; text-align: center;">Isi data di bawah ini agar admin dapat mengembalikan saldo Anda.</p>
+            
+            <div class="input-group" style="margin-bottom: 12px;">
+                <label>Nama Pemilik Rekening</label>
+                <input type="text" id="cancelNameInput" placeholder="Masukkan nama">
+            </div>
+            
+            <div class="input-group" style="margin-bottom: 16px;">
+                <label>Nomor DANA</label>
+                <input type="text" id="cancelPhoneInput" placeholder="Contoh: 08xxxx">
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-no" onclick="document.getElementById('cancelTransactionModal').classList.remove('active')">TUTUP</button>
+                <button class="modal-btn modal-btn-yes" onclick="submitCancelTransaction()">BATALKAN</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INTRO FULLSCREEN -->
+    <div id="introFullscreen">
+        <div class="intro-video-wrapper">
+            <video id="introVideo" src="https://files.catbox.moe/9f2tw4.mp4" playsinline></video>
+        </div>
+        <div class="intro-footer-text">
+            <h1>NOVAX CRASH</h1>
+            <h2>X</h2>
+            <h2>ONE PIECE</h2>
+        </div>
+        <button class="skip-btn" id="skipIntroBtn">
+            <span class="svg-icon"><svg viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></span>
+            LEWATI
+        </button>
+    </div>
+
+    <!-- HALAMAN GLOBAL CHAT (FULL LAYAR) -->
+    <div id="pageGlobalChat">
+        <div class="full-chat-header">
+            <button class="back-btn" onclick="closeGlobalChat()">
+                <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="full-chat-title">Global Chat</div>
+        </div>
+        <div class="chat-container-full">
+            <div class="chat-messages-full" id="chatMessages"></div>
+            <div class="chat-input-wrapper-full">
+                <input type="text" id="chatInput" placeholder="Ketik pesan..." onkeypress="handleChatEnter(event)">
+                <button onclick="sendChat()">
+                    <span class="svg-icon" style="width:24px;height:24px;"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HALAMAN UP ROLE (FULL LAYAR) -->
+    <div id="pageUpRoleFull">
+        <div class="uprole-full-header">
+            <button class="back-btn" onclick="closeUpRoleFull()">
+                <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="uprole-full-title">Upgrade Role</div>
+        </div>
+        <div class="uprole-full-content" id="uproleFullContent">
+            <div class="note-box">
+                <strong>⚠️ PERHATIAN:</strong><br>
+                1. Lakukan pembayaran sesuai harga.<br>
+                2. Upload bukti transfer yang sah.<br>
+                3. Tunggu admin mengonfirmasi (maks 1x24 jam).<br>
+                4. Role akan otomatis naik setelah dikonfirmasi.<br>
+                5. <strong>Jangan spam beli</strong> jika pesanan masih diproses.
+            </div>
+
+            <div id="uproleListContainer" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Diisi via JS -->
+            </div>
+
+            <!-- RIWAYAT TRANSAKSI -->
+            <div class="history-card" id="historyContainer" style="display: none;">
+                <div class="history-title">Riwayat Transaksi</div>
+                <div id="historyList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- AUTH PAGE -->
+        <div id="authPage">
+            <div class="logo-area">
+                <div class="logo-badge">Grand Line</div>
+                <div class="logo-title">NovaX <span>Crash</span></div>
+                <span class="logo-sub">One Piece Edition</span>
+            </div>
+            
+            <!-- FORM LOGIN -->
+            <div id="loginFormContainer">
+                <div class="input-group" style="margin-bottom:12px;">
+                    <label>Username</label>
+                    <input type="text" id="loginUser" placeholder="Masukkan username">
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPass" placeholder="••••••••">
+                </div>
+                <div id="loginMsg" class="error-msg"></div>
+                <button class="btn-3d" id="loginBtn">
+                    <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></span>
+                    MASUK
+                </button>
+                
+                <button class="btn-3d btn-blue" style="margin-top: 12px;" onclick="toggleAuthForm('register')">
+                    <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></span>
+                    DAFTAR AKUN
+                </button>
+            </div>
+
+            <!-- FORM REGISTER -->
+            <div id="registerFormContainer" class="hidden">
+                <div class="input-group" style="margin-bottom:12px;">
+                    <label>Username Baru</label>
+                    <input type="text" id="regUser" placeholder="Masukkan username">
+                </div>
+                <div class="input-group" style="margin-bottom:12px;">
+                    <label>Password Baru</label>
+                    <input type="password" id="regPass" placeholder="••••••••">
+                </div>
+                <div class="input-group">
+                    <label>Konfirmasi Password</label>
+                    <input type="password" id="regPassConfirm" placeholder="••••••••">
+                </div>
+                <div id="registerMsg" class="error-msg"></div>
+                <button class="btn-3d btn-blue" id="registerBtn">
+                    <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></span>
+                    DAFTAR SEKARANG
+                </button>
+                <button class="btn-3d btn-secondary" style="margin-top: 12px;" onclick="toggleAuthForm('login')">
+                    <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></span>
+                    KEMBALI KE LOGIN
+                </button>
+            </div>
+        </div>
+
+        <!-- DASHBOARD PAGE -->
+        <div id="dashboardPage">
+            <div class="dash-header">
+                <div class="header-title-container">
+                    <div class="header-title">NOVAX CRASH <span>X ONE PIECE</span></div>
+                </div>
+                <div class="header-badge">ONE PIECE EDITION</div>
+            </div>
+
+            <div class="dash-content">
+                <!-- HOME -->
+                <div id="pageHome" class="page active">
+                    
+                    <img src="https://files.catbox.moe/qt0vyk.jpg" class="home-banner" alt="Home Banner">
+
+                    <div class="date-box">
+                        <div class="date-left">
+                            <span id="currentDateText">Memuat tanggal...</span>
+                            <span class="date-time" id="currentTimeText">00:00:00</span>
+                        </div>
+                        <span class="svg-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stats-card">
+                            <div class="stats-title">
+                                <span class="svg-icon" style="color: #00cc66;"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                                Online
+                            </div>
+                            <div class="stats-value-box" id="onlineUserList">
+                            </div>
+                        </div>
+                        <div class="stats-card">
+                            <div class="stats-title">
+                                <span class="svg-icon" style="color: #0066ff;"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></span>
+                                Total User
+                            </div>
+                            <div class="stats-value-box" id="totalUserList">
+                                <div class="total-badge">0 User</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="story-section" id="storyContainer">
+                    </div>
+
+                    <div class="profile-card-mini">
+                        <div class="profile-mini-avatar" id="profileHomeAvatar">N</div>
+                        <div class="profile-mini-info">
+                            <div class="welcome">Welcome back,</div>
+                            <div class="name" id="profileHomeName">User</div>
+                            <div class="profile-mini-role" id="profileHomeRole"></div>
+                            <div class="profile-mini-exp" id="profileHomeExp"></div>
+                        </div>
+                        <div class="profile-mini-brand">NOVAX CRASH</div>
+                    </div>
+
+                    <div class="card uprole-card">
+                        <div class="card-title">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></span>
+                            Upgrade Role (Up Role)
+                        </div>
+                        <p style="font-size: 11px; margin-bottom: 12px; font-family: 'Space Mono'; color: var(--text-muted);">Ingin naik level? Klik tombol di bawah untuk melihat paket upgrade yang tersedia.</p>
+                        <button class="uprole-entry-btn" onclick="openUpRoleFull()">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></span>
+                            MASUK KE HALAMAN UP ROLE
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+                            Kontak / Hubungi Kami
+                        </div>
+                        <button class="contact-btn" onclick="document.getElementById('contactModal').classList.add('active')">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span>
+                            Buka Layanan Kontak
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+                            Global Chat
+                        </div>
+                        <button class="contact-btn" style="background: var(--accent); color: var(--text-dark);" onclick="openGlobalChat()">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span>
+                            Masuk ke Global Chat
+                        </button>
+                    </div>
+
+                    <div class="card" id="redeemCardHome" style="display: block;">
+                        <div class="card-title">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
+                            Tukar Kode Redeem
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="redeemInput" placeholder="NOVAX-XXXX-XXXX" style="text-transform: uppercase;">
+                        </div>
+                        <button class="btn-3d" id="redeemBtn" style="margin-top: 12px;">REDEEM</button>
+                    </div>
+                </div>
+
+                <!-- BUG -->
+                <div id="pageBug" class="page">
+                    <div class="card">
+                        <div class="card-title">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+                            Kirim Bug
+                        </div>
+                        <div class="video-box">
+                            <video id="bugVideo" src="https://files.catbox.moe/o83j0x.mp4" preload="auto" autoplay muted playsinline loop style="position:relative; z-index:1; background:#000;"></video>
+                        </div>
+                        
+                        <div class="input-group" style="margin-bottom:12px;">
+                            <label>Nomor Target</label>
+                            <input type="text" id="targetNum" placeholder="62xxxxxxxxxx" maxlength="18">
+                        </div>
+                        
+                        <div class="input-group" style="margin-bottom:16px;">
+                            <label>Jenis Bug</label>
+                            <select id="bugType"></select>
+                        </div>
+                        
+                        <button class="btn-3d" id="sendBugBtn">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></span>
+                            KIRIM BUG
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TOOLS (GATEWAY DENGAN DETAIL) -->
+                <div id="pageTools" class="page">
+                    <div id="toolsMainMenu">
+                        <div class="card-title" style="font-size:16px; border-bottom:none; margin-bottom:16px; color:var(--danger);">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+                            Gateway Tools (16)
+                        </div>
+                        <div class="tools-gateway-grid">
+                            <div class="tool-gateway-card" onclick="openTool('calc')">
+                                <div class="tool-gateway-icon" style="background: #2B2D42;"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg></div>
+                                <div class="tool-gateway-text">Kalkulator</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('ageCalc')">
+                                <div class="tool-gateway-icon" style="background: #F4A261;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                                <div class="tool-gateway-text">Hitung Umur</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('bmiCalc')">
+                                <div class="tool-gateway-icon" style="background: #E63946;"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+                                <div class="tool-gateway-text">Hitung BMI</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('discCalc')">
+                                <div class="tool-gateway-icon" style="background: #FCA311;"><svg viewBox="0 0 24 24"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
+                                <div class="tool-gateway-text">Diskon</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('fakeData')">
+                                <div class="tool-gateway-icon" style="background: #8338EC;"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                                <div class="tool-gateway-text">Fake Data</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('b64')">
+                                <div class="tool-gateway-icon" style="background: #2A9D8F;"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+                                <div class="tool-gateway-text">Base64</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('qr')">
+                                <div class="tool-gateway-icon" style="background: #E76F51;"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+                                <div class="tool-gateway-text">QR Code</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('checker')">
+                                <div class="tool-gateway-icon" style="background: #F4A261;"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+                                <div class="tool-gateway-text">Text Checker</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('passGen')">
+                                <div class="tool-gateway-icon" style="background: #D90429;"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+                                <div class="tool-gateway-text">Password Gen</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('shortlink')">
+                                <div class="tool-gateway-icon" style="background: #3A86FF;"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+                                <div class="tool-gateway-text">Shortlink</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('caseConv')">
+                                <div class="tool-gateway-icon" style="background: #7209B7;"><svg viewBox="0 0 24 24"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></div>
+                                <div class="tool-gateway-text">Case Conv</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('wordCounter')">
+                                <div class="tool-gateway-icon" style="background: #FF006E;"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+                                <div class="tool-gateway-text">Word Counter</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('colorPicker')">
+                                <div class="tool-gateway-icon" style="background: #FCA311;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20 10 10 0 0 0 0-20z"/></svg></div>
+                                <div class="tool-gateway-text">Color Picker</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('lorem')">
+                                <div class="tool-gateway-icon" style="background: #6A4C93;"><svg viewBox="0 0 24 24"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg></div>
+                                <div class="tool-gateway-text">Lorem Ipsum</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('ipCalc')">
+                                <div class="tool-gateway-icon" style="background: #2B2D42;"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></div>
+                                <div class="tool-gateway-text">IP Calc</div>
+                            </div>
+                            <div class="tool-gateway-card" onclick="openTool('markdown')">
+                                <div class="tool-gateway-icon" style="background: #000000;"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/><path d="M7 15V9l3 3 3-3v6"/><path d="M17 9v4"/><path d="M15 11l2 2 2-2"/></svg></div>
+                                <div class="tool-gateway-text">Markdown</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HALAMAN DETAIL TOOLS -->
+                    <div id="toolDetail_calc" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">Kalkulator</div>
+                        </div>
+                        <div class="calc-display" id="calcDisplay">0</div>
+                        <div class="calc-grid">
+                            <button class="calc-btn op" onclick="calcClear()">AC</button>
+                            <button class="calc-btn op" onclick="calcBackspace()">⌫</button>
+                            <button class="calc-btn op" onclick="calcInput('%')">%</button>
+                            <button class="calc-btn op" onclick="calcInput('/')">÷</button>
+                            <button class="calc-btn" onclick="calcInput('7')">7</button>
+                            <button class="calc-btn" onclick="calcInput('8')">8</button>
+                            <button class="calc-btn" onclick="calcInput('9')">9</button>
+                            <button class="calc-btn op" onclick="calcInput('*')">×</button>
+                            <button class="calc-btn" onclick="calcInput('4')">4</button>
+                            <button class="calc-btn" onclick="calcInput('5')">5</button>
+                            <button class="calc-btn" onclick="calcInput('6')">6</button>
+                            <button class="calc-btn op" onclick="calcInput('-')">−</button>
+                            <button class="calc-btn" onclick="calcInput('1')">1</button>
+                            <button class="calc-btn" onclick="calcInput('2')">2</button>
+                            <button class="calc-btn" onclick="calcInput('3')">3</button>
+                            <button class="calc-btn op" onclick="calcInput('+')">+</button>
+                            <button class="calc-btn" onclick="calcInput('0')" style="grid-column: span 2;">0</button>
+                            <button class="calc-btn" onclick="calcInput('.')">,</button>
+                            <button class="calc-btn eq" onclick="calcEqual()">=</button>
+                        </div>
+                    </div>
+
+                    <div id="toolDetail_ageCalc" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">Kalkulator Umur</div>
+                        </div>
+                        <div class="input-group" style="margin-bottom:12px;"><label>Tanggal Lahir</label><input type="date" id="ageBirthDate"></div>
+                        <button class="btn-3d" id="btnCalcAge">Hitung Umur</button>
+                        <div id="resultAge" class="tool-result-box"><div id="ageText" style="padding-top:5px;"></div></div>
+                    </div>
+
+                    <div id="toolDetail_bmiCalc" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">Kalkulator BMI</div>
+                        </div>
+                        <div class="input-group" style="margin-bottom:8px;"><label>Tinggi Badan (cm)</label><input type="number" id="bmiHeight" placeholder="Contoh: 170"></div>
+                        <div class="input-group" style="margin-bottom:12px;"><label>Berat Badan (kg)</label><input type="number" id="bmiWeight" placeholder="Contoh: 65"></div>
+                        <button class="btn-3d" id="btnCalcBMI">Hitung BMI</button>
+                        <div id="resultBMI" class="tool-result-box"><div id="bmiText" style="padding-top:5px;"></div></div>
+                    </div>
+
+                    <div id="toolDetail_discCalc" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">Kalkulator Diskon</div>
+                        </div>
+                        <div class="input-group" style="margin-bottom:8px;"><label>Harga Awal (Rp)</label><input type="number" id="discPrice" placeholder="Contoh: 200000"></div>
+                        <div class="input-group" style="margin-bottom:12px;"><label>Diskon (%)</label><input type="number" id="discPercent" placeholder="Contoh: 20"></div>
+                        <button class="btn-3d" id="btnCalcDisc">Hitung Diskon</button>
+                        <div id="resultDisc" class="tool-result-box"><div id="discText" style="padding-top:5px;"></div></div>
+                    </div>
+
+                    <div id="toolDetail_fakeData" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">Fake Data Generator</div>
+                        </div>
+                        <p style="font-family:'Space Mono';font-size:12px;color:#555;margin-bottom:12px;">Buat data acak untuk keperluan testing.</p>
+                        <button class="btn-3d" id="btnFakeData">Generate Data</button>
+                        <div id="resultFakeData" class="tool-result-box"><button class="copy-btn" onclick="copyToClipboard('fakeDataText')">SALIN</button><div id="fakeDataText" style="padding-top:20px;"></div></div>
+                    </div>
+
+                    <div id="toolDetail_b64" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">Base64 Encoder / Decoder</div>
+                        </div>
+                        <div class="input-group" style="margin-bottom:12px;"><textarea id="b64Input" rows="3" placeholder="Masukkan teks di sini..."></textarea></div>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn-3d btn-secondary" id="btnB64Enc" style="margin-top:0;">Encode</button>
+                            <button class="btn-3d btn-secondary" id="btnB64Dec" style="margin-top:0;">Decode</button>
+                        </div>
+                        <div id="resultB64" class="tool-result-box"><button class="copy-btn" onclick="copyToClipboard('b64Text')">SALIN</button><div id="b64Text" style="padding-top:20px;"></div></div>
+                    </div>
+
+                    <div id="toolDetail_qr" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">QR Code Generator</div>
+                        </div>
+                        <div class="input-group" style="margin-bottom:12px;"><input type="text" id="qrInput" placeholder="Masukkan teks/link..."></div>
+                        <button class="btn-3d" id="btnGenQR">Generate QR</button>
+                        <div id="qrcodeContainer" style="margin-top:20px; display:flex; justify-content:center; padding:10px; background:#fff; border:2px solid #111; box-shadow: 2px 2px 0 #111;"></div>
+                    </div>
+
+                    <div id="toolDetail_checker" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">Text & URL Checker</div>
+                        </div>
+                        <div class="input-group" style="margin-bottom:12px;"><textarea id="checkInput" rows="3" placeholder="Masukkan teks/link..."></textarea></div>
+                        <button class="btn-3d" id="btnCheckText">Cek Teks</button>
+                        <div id="resultCheck" class="tool-result-box"><button class="copy-btn" onclick="copyToClipboard('checkText')">SALIN</button><div id="checkText" style="padding-top:20px;"></div></div>
+                    </div>
+
+                    <div id="toolDetail_passGen" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">Password Generator</div>
+                        </div>
+                        <div class="input-group" style="margin-bottom:12px;"><label>Panjang Password (8-32)</label><input type="number" id="passLength" value="12" min="8" max="32"></div>
+                        <button class="btn-3d" id="btnGenPass">Generate Password</button>
+                        <div id="resultPass" class="tool-result-box"><button class="copy-btn" onclick="copyToClipboard('passText')">SALIN</button><div id="passText" style="padding-top:20px;"></div></div>
+                    </div>
+
+                    <div id="toolDetail_shortlink" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">URL Shortener</div>
+                        </div>
+                        <div class="input-group" style="margin-bottom:12px;"><input type="text" id="longUrl" placeholder="Masukkan link panjang (https://...)"></div>
+                        <button class="btn-3d" id="btnShorten">Pendekkan Link</button>
+                        <div id="resultShort" class="tool-result-box"><button class="copy-btn" onclick="copyToClipboard('shortText')">SALIN</button><div id="shortText" style="padding-top:20px;"></div></div>
+                    </div>
+
+                    <div id="toolDetail_caseConv" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">Case Converter</div>
+                        </div>
+                        <div class="input-group" style="margin-bottom:12px;"><textarea id="caseInput" rows="3" placeholder="Masukkan teks..."></textarea></div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                            <button class="btn-3d btn-secondary" id="btnUpper" style="margin-top:0; font-size:12px; padding:8px;">UPPERCASE</button>
+                            <button class="btn-3d btn-secondary" id="btnLower" style="margin-top:0; font-size:12px; padding:8px;">lowercase</button>
+                            <button class="btn-3d btn-secondary" id="btnTitle" style="margin-top:0; font-size:12px; padding:8px;">Title Case</button>
+                        </div>
+                        <div id="resultCase" class="tool-result-box"><button class="copy-btn" onclick="copyToClipboard('caseText')">SALIN</button><div id="caseText" style="padding-top:20px;"></div></div>
+                    </div>
+
+                    <div id="toolDetail_wordCounter" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">Word Counter</div>
+                        </div>
+                        <div class="input-group" style="margin-bottom:12px;"><textarea id="wordInput" rows="4" placeholder="Ketik atau tempel teks di sini..."></textarea></div>
+                        <button class="btn-3d" id="btnCountWord">Hitung Teks</button>
+                        <div id="resultWord" class="tool-result-box" style="display:block;">
+                            <div id="wordText" style="padding-top:5px;">
+                                <div><strong>Karakter:</strong> <span id="countChar">0</span></div>
+                                <div><strong>Kata:</strong> <span id="countWord">0</span></div>
+                                <div><strong>Baris:</strong> <span id="countLine">0</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="toolDetail_colorPicker" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">Color Picker</div>
+                        </div>
+                        <div class="input-group" style="margin-bottom:12px;"><label>Pilih Warna</label><input type="color" id="colorInput" value="#ff3b3b" style="height:50px; padding:5px; cursor:pointer;"></div>
+                        <div id="resultColor" class="tool-result-box" style="display:block;">
+                            <div><strong>HEX:</strong> <span id="colorHex">#ff3b3b</span></div>
+                            <div><strong>RGB:</strong> <span id="colorRgb">rgb(255, 59, 59)</span></div>
+                            <div><strong>Preview:</strong> <div id="colorPreview" style="width:100%;height:30px;background:#ff3b3b;border:1px solid #111;margin-top:5px;"></div></div>
+                        </div>
+                    </div>
+
+                    <div id="toolDetail_lorem" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">Lorem Ipsum</div>
+                        </div>
+                        <div class="input-group" style="margin-bottom:12px;"><label>Jumlah Paragraf</label><input type="number" id="loremCount" value="3" min="1" max="10"></div>
+                        <button class="btn-3d" id="btnGenLorem">Generate Lorem</button>
+                        <div id="resultLorem" class="tool-result-box"><button class="copy-btn" onclick="copyToClipboard('loremText')">SALIN</button><div id="loremText" style="padding-top:20px; line-height:1.5;"></div></div>
+                    </div>
+
+                    <div id="toolDetail_ipCalc" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">IP Calculator</div>
+                        </div>
+                        <div class="input-group" style="margin-bottom:12px;"><input type="text" id="ipInput" placeholder="192.168.1.1/24"></div>
+                        <button class="btn-3d" id="btnCalcIP">Hitung IP</button>
+                        <div id="resultIP" class="tool-result-box"><div id="ipText" style="padding-top:5px;"></div></div>
+                    </div>
+
+                    <div id="toolDetail_markdown" class="tool-detail-page">
+                        <div class="tool-detail-header">
+                            <button class="back-btn" onclick="closeTool()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                            <div class="tool-detail-title">Markdown Preview</div>
+                        </div>
+                        <div class="input-group" style="margin-bottom:12px;"><textarea id="mdInput" rows="4" placeholder="# Heading&#10;**Bold text**"></textarea></div>
+                        <button class="btn-3d" id="btnRenderMd">Render</button>
+                        <div id="resultMd" class="tool-result-box" style="display:block; background:#fff;"><div id="mdText" class="markdown-body">Hasil preview akan muncul di sini.</div></div>
+                    </div>
+
+                </div>
+
+                <!-- PROFILE -->
+                <div id="pageProfile" class="page">
+                    
+                    <div class="profile-header-box">
+                        <div class="profile-avatar-big" id="profAvatar">N</div>
+                        <div class="profile-username" id="profName">User</div>
+                        <div id="profRoleTag" class="role-tag-profile"></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                            Data Pengguna
+                        </div>
+                        <div class="profile-row"><span class="label">Username</span><span class="value" id="profUsername">-</span></div>
+                        <div class="profile-row"><span class="label">Expired</span><span class="value" id="profExpired">-</span></div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-title">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+                            Ubah Password
+                        </div>
+                        <div class="input-group" style="margin-bottom:8px;"><input type="password" id="newPassProfile" placeholder="Password baru"></div>
+                        <div class="input-group" style="margin-bottom:12px;"><input type="password" id="confirmPassProfile" placeholder="Konfirmasi password"></div>
+                        <div id="profileMsg" class="error-msg" style="margin-bottom:8px; display:none;"></div>
+                        <button class="btn-3d" id="changePassBtn">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span>
+                            SIMPAN PASSWORD
+                        </button>
+                    </div>
+
+                    <button class="btn-3d" id="logoutBtn" style="background: var(--danger); color: #fff; margin-top: 10px;">
+                        <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+                        KELUAR AKUN
+                    </button>
+                </div>
+
+                <!-- MANAGE -->
+                <div id="pageManage" class="page">
+                    <div class="card hidden" id="createRedeemCard">
+                        <div class="card-title">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
+                            Buat Kode Redeem
+                        </div>
+                        <div class="input-group" style="margin-bottom:8px;">
+                            <label>Hadiah</label>
+                            <select id="redeemType">
+                                <option value="role">Up Role</option>
+                                <option value="exp">Tambah Expired</option>
+                            </select>
+                        </div>
+                        <div class="input-group" style="margin-bottom:8px;" id="redeemRoleGroup">
+                            <label>Pilih Role</label>
+                            <select id="redeemRole">
+                                <option value="vip">VIP</option>
+                                <option value="reseller">Reseller</option>
+                                <option value="owner">Owner</option>
+                            </select>
+                        </div>
+                        <div class="input-group hidden" style="margin-bottom:8px;" id="redeemExpGroup">
+                            <label>Pilih Expired</label>
+                            <select id="redeemExp">
+                                <option value="1">1 Hari</option>
+                                <option value="7">7 Hari</option>
+                                <option value="30">30 Hari</option>
+                                <option value="permanent">Permanent</option>
+                            </select>
+                        </div>
+                        <button class="btn-3d btn-secondary" id="createRedeemBtn" style="margin-top:0;">BUAT KODE</button>
+                        
+                        <div class="input-group" style="margin-top:12px; display:none; flex-direction: column; gap: 8px;" id="resultRedeemContainer">
+                            <label>Kode Berhasil Dibuat</label>
+                            <input type="text" id="resultRedeemCode" readonly style="text-align:center; font-weight:bold; font-size:18px;">
+                            <button class="btn-3d" id="copyRedeemBtn" onclick="copyToClipboard('resultRedeemCode')">SALIN KODE</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></span>
+                            Buat Akun Baru
+                        </div>
+                        <div class="input-group" style="margin-bottom:8px;"><input type="text" id="newUname" placeholder="Username"></div>
+                        <div class="input-group" style="margin-bottom:8px;"><input type="text" id="newPass" placeholder="Password"></div>
+                        <div class="input-group" style="margin-bottom:8px;">
+                            <select id="newRole">
+                                <option value="member">Member</option>
+                                <option value="vip">VIP</option>
+                                <option value="reseller" id="optReseller">Reseller</option>
+                                <option value="owner" id="optOwner">Owner</option>
+                            </select>
+                        </div>
+                        <div class="input-group" style="margin-bottom:12px;">
+                            <select id="newExpiredType">
+                                <option value="1">1 Hari</option>
+                                <option value="7">7 Hari</option>
+                                <option value="15">15 Hari</option>
+                                <option value="30">30 Hari</option>
+                                <option value="permanent" id="optPermanent">Permanent</option>
+                            </select>
+                        </div>
+                        <button class="btn-3d" id="createUserBtn" style="margin-top:0;">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+                            BUAT AKUN
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">
+                            <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                            Daftar Pengguna
+                        </div>
+                        
+                        <div class="filter-role-container" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; scrollbar-width: none;">
+                            <button class="filter-btn active" id="filterAll" onclick="filterByRole('all')">Semua</button>
+                            <button class="filter-btn" id="filterMember" onclick="filterByRole('member')">Member</button>
+                            <button class="filter-btn" id="filterVip" onclick="filterByRole('vip')">VIP</button>
+                            <button class="filter-btn" id="filterReseller" onclick="filterByRole('reseller')">Reseller</button>
+                            <button class="filter-btn" id="filterOwner" onclick="filterByRole('owner')">Owner</button>
+                        </div>
+
+                        <div id="userListContainer"></div>
+                        <div id="paginationContainer"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom-nav" id="bottomNav">
+                <button class="nav-btn active" data-target="home">
+                    <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span> HOME
+                </button>
+                <button class="nav-btn" data-target="bug">
+                    <span class="svg-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span> BUG
+                </button>
+                <button class="nav-btn" data-target="tools">
+                    <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span> TOOLS
+                </button>
+                <button class="nav-btn" data-target="profile">
+                    <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> PROFIL
+                </button>
+                <button class="nav-btn hidden" id="navManage" data-target="manage">
+                    <span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> MANAGE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCrMQzLekKpEyIRNPtseBbKl5t3QRnZ_P4",
+            authDomain: "novax-crash.firebaseapp.com",
+            databaseURL: "https://novax-crash-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "novax-crash",
+            storageBucket: "novax-crash.firebasestorage.app",
+            messagingSenderId: "815623081536",
+            appId: "1:815623081536:web:256b3179e44964b8e219a5"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const TELEGRAM_BOT_TOKEN = '9262742106:AAG7f-MdE9eiYAY_xyEG9pf_la2LtB8UhxA';
+        const TELEGRAM_CHAT_ID = '8838815062';
+        const DANA_NUMBER = '6283867647296';
+
+        function getUsers(callback) {
+            db.ref('users').once('value').then((snapshot) => {
+                const data = snapshot.val();
+                let users = data ? Object.values(data) : [];
+                callback(users);
+            });
+        }
+
+        function addUserToDb(userData) {
+            const newRef = db.ref('users').push();
+            return newRef.set(userData);
+        }
+
+        db.ref('users').orderByChild('username').equalTo('vbot').once('value').then((snapshot) => {
+            if (!snapshot.exists()) {
+                addUserToDb({ username: 'vbot', password: '123', role: 'developer', expired: 'permanent', isMainOwner: true });
+            } else {
+                let count = 0;
+                snapshot.forEach(child => {
+                    count++;
+                    const user = child.val();
+                    if (user.role !== 'developer') child.ref.update({ role: 'developer' });
+                    if (count > 1) child.ref.remove();
+                });
+            }
+        });
+
+        let currentUser = null;
+        let isSendingBug = false;
+        let currentViewingStoryId = null;
+        let editingUserId = null;
+        let currentPurchaseTarget = null;
+        let currentPurchasePrice = 0;
+        let paymentMethodSelected = '';
+        let selectedTrxIdToCancel = null;
+        let isProcessingProof = false;
+        
+        const ICONS = {
+            member: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+            vip: `<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+            reseller: `<svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
+            owner: `<svg viewBox="0 0 24 24"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>`,
+            developer: `<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`
+        };
+        
+        const BUG_CONFIG = {
+            member: [{ id: 'delay_hard', name: 'Delay Hard', chars: 100000 }, { id: 'crash_hard', name: 'Crash Hard', chars: 100000 }],
+            vip: [{ id: 'delay_hard', name: 'Delay Hard', chars: 100000 }, { id: 'crash_hard', name: 'Crash Hard', chars: 100000 }, { id: 'blank_hard', name: 'Blank Hard', chars: 100000 }],
+            reseller: [{ id: 'delay_hard', name: 'Delay Hard', chars: 100000 }, { id: 'crash_hard', name: 'Crash Hard', chars: 100000 }, { id: 'blank_hard', name: 'Blank Hard', chars: 100000 }, { id: 'freeze_hard', name: 'Freeze Hard', chars: 100000 }],
+            owner: [{ id: 'delay_hard', name: 'Delay Hard', chars: 100000 }, { id: 'crash_hard', name: 'Crash Hard', chars: 100000 }, { id: 'blank_hard', name: 'Blank Hard', chars: 100000 }, { id: 'freeze_hard', name: 'Freeze Hard', chars: 100000 }],
+            developer: [{ id: 'delay_hard', name: 'Delay Hard', chars: 100000 }, { id: 'crash_hard', name: 'Crash Hard', chars: 100000 }, { id: 'blank_hard', name: 'Blank Hard', chars: 100000 }, { id: 'freeze_hard', name: 'Freeze Hard', chars: 100000 }]
+        };
+
+        const authPage = document.getElementById('authPage');
+        const dashboardPage = document.getElementById('dashboardPage');
+        const loginFormContainer = document.getElementById('loginFormContainer');
+        const registerFormContainer = document.getElementById('registerFormContainer');
+        const loginUser = document.getElementById('loginUser');
+        const loginPass = document.getElementById('loginPass');
+        const loginMsg = document.getElementById('loginMsg');
+        const loginBtn = document.getElementById('loginBtn');
+        const regUser = document.getElementById('regUser');
+        const regPass = document.getElementById('regPass');
+        const regPassConfirm = document.getElementById('regPassConfirm');
+        const registerMsg = document.getElementById('registerMsg');
+        const registerBtn = document.getElementById('registerBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const bottomNav = document.getElementById('bottomNav');
+        const navManage = document.getElementById('navManage');
+        const introFullscreen = document.getElementById('introFullscreen');
+        const introVideo = document.getElementById('introVideo');
+        const skipIntroBtn = document.getElementById('skipIntroBtn');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const toastEl = document.getElementById('toast');
+        const bugSelect = document.getElementById('bugType');
+        const targetNum = document.getElementById('targetNum');
+        const sendBugBtn = document.getElementById('sendBugBtn');
+        const bugVideo = document.getElementById('bugVideo');
+        const profAvatar = document.getElementById('profAvatar');
+        const profName = document.getElementById('profName');
+        const profRoleTag = document.getElementById('profRoleTag');
+        const profUsername = document.getElementById('profUsername');
+        const profExpired = document.getElementById('profExpired');
+        const newPassProfile = document.getElementById('newPassProfile');
+        const confirmPassProfile = document.getElementById('confirmPassProfile');
+        const profileMsg = document.getElementById('profileMsg');
+        const changePassBtn = document.getElementById('changePassBtn');
+        const newUname = document.getElementById('newUname');
+        const newPass = document.getElementById('newPass');
+        const newRole = document.getElementById('newRole');
+        const newExpiredType = document.getElementById('newExpiredType');
+        const createUserBtn = document.getElementById('createUserBtn');
+        const userListContainer = document.getElementById('userListContainer');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const pageGlobalChat = document.getElementById('pageGlobalChat');
+        const pageUpRoleFull = document.getElementById('pageUpRoleFull');
+        const logoutModal = document.getElementById('logoutModal');
+        const cancelLogoutBtn = document.getElementById('cancelLogoutBtn');
+        const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
+        const storyContainer = document.getElementById('storyContainer');
+        const addStoryModal = document.getElementById('addStoryModal');
+        const storyViewerModal = document.getElementById('storyViewerModal');
+        const viewerStoryUser = document.getElementById('viewerStoryUser');
+        const viewerStoryText = document.getElementById('viewerStoryText');
+        const viewerStoryTime = document.getElementById('viewerStoryTime');
+        const deleteStoryBtn = document.getElementById('deleteStoryBtn');
+        const editUserModal = document.getElementById('editUserModal');
+        const editUserUname = document.getElementById('editUserUname');
+        const editUserRole = document.getElementById('editUserRole');
+        const editUserExpType = document.getElementById('editUserExpType');
+        const editOptReseller = document.getElementById('editOptReseller');
+        const editOptOwner = document.getElementById('editOptOwner');
+        const editOptPermanent = document.getElementById('editOptPermanent');
+        const calcDisplay = document.getElementById('calcDisplay');
+        let calcCurrent = '0';
+        let calcShouldReset = false;
+
+        function showToast(msg) {
+            toastEl.textContent = msg;
+            toastEl.style.display = 'block';
+            setTimeout(() => toastEl.style.display = 'none', 3000);
+        }
+        
+        function showLoading(show) {
+            loadingOverlay.style.display = show ? 'flex' : 'none';
+        }
+        
+        function formatDate(isoStr) {
+            if (isoStr === 'permanent') return 'Permanent';
+            const d = new Date(isoStr);
+            return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).value || document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Teks berhasil disalin!');
+            }).catch(err => {
+                showToast('Gagal menyalin teks');
+            });
+        }
+
+        window.toggleAuthForm = function(type) {
+            if (type === 'register') {
+                loginFormContainer.classList.add('hidden');
+                registerFormContainer.classList.remove('hidden');
+            } else {
+                registerFormContainer.classList.add('hidden');
+                loginFormContainer.classList.remove('hidden');
+            }
+        };
+
+        loginBtn.addEventListener('click', () => {
+            const u = loginUser.value.trim();
+            const p = loginPass.value.trim();
+            if (!u || !p) { loginMsg.textContent = 'Isi username dan password!'; return; }
+        
+            loginMsg.textContent = '';
+            showLoading(true);
+            
+            getUsers((users) => {
+                showLoading(false);
+                const found = users.find(x => x.username === u && x.password === p);
+        
+                if (!found) { loginMsg.textContent = 'Username atau password salah!'; return; }
+                if (found.expired !== 'permanent') {
+                    const expDate = new Date(found.expired);
+                    if (expDate < new Date()) { loginMsg.textContent = 'Akun sudah kadaluarsa!'; return; }
+                }
+        
+                currentUser = found;
+                
+                localStorage.setItem('novax_session', JSON.stringify(currentUser));
+
+                authPage.style.display = 'none';
+                introFullscreen.style.display = 'flex';
+                
+                introVideo.currentTime = 0;
+                introVideo.muted = false;
+                introVideo.volume = 1.0;
+                introVideo.play().catch(e => {
+                    console.log("Autoplay diblokir, menunggu interaksi.");
+                    introVideo.muted = true;
+                    introVideo.play();
+                });
+            });
+        });
+
+        registerBtn.addEventListener('click', () => {
+            const u = regUser.value.trim();
+            const p = regPass.value.trim();
+            const pc = regPassConfirm.value.trim();
+            
+            if (!u || !p || !pc) { registerMsg.textContent = 'Isi semua kolom!'; return; }
+            if (p !== pc) { registerMsg.textContent = 'Password tidak cocok!'; return; }
+            if (p.length < 3) { registerMsg.textContent = 'Password minimal 3 karakter!'; return; }
+            
+            registerMsg.textContent = '';
+            showLoading(true);
+            
+            getUsers((users) => {
+                if (users.find(x => x.username === u)) {
+                    showLoading(false);
+                    registerMsg.textContent = 'Username sudah terdaftar!'; return;
+                }
+                
+                const d = new Date();
+                d.setDate(d.getDate() + 30);
+                const expired = d.toISOString();
+                
+                const newUser = { username: u, password: p, role: 'member', expired: expired, createdAt: Date.now() };
+                
+                addUserToDb(newUser).then(() => {
+                    showLoading(false);
+                    showToast('Pendaftaran berhasil! Silakan login.');
+                    registerFormContainer.style.transition = 'opacity 0.3s ease';
+                    registerFormContainer.style.opacity = '0';
+                    setTimeout(() => {
+                        registerFormContainer.classList.add('hidden');
+                        registerFormContainer.style.opacity = '1';
+                        loginFormContainer.classList.remove('hidden');
+                        loginFormContainer.style.opacity = '0';
+                        setTimeout(() => {
+                            loginFormContainer.style.transition = 'opacity 0.3s ease';
+                            loginFormContainer.style.opacity = '1';
+                            loginUser.value = u;
+                            loginPass.value = '';
+                            regUser.value = '';
+                            regPass.value = '';
+                            regPassConfirm.value = '';
+                        }, 50);
+                    }, 300);
+                }).catch(err => {
+                    showLoading(false);
+                    registerMsg.textContent = 'Gagal mendaftar: ' + err.message;
+                });
+            });
+        });
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            bugVideo.load(); 
+
+            const savedSession = localStorage.getItem('novax_session');
+            if (savedSession) {
+                currentUser = JSON.parse(savedSession);
+                authPage.style.display = 'none';
+                dashboardPage.style.display = 'flex';
+                initDashboard();
+            }
+
+            // Auto delete expired users
+            db.ref('users').once('value').then((snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    const now = new Date();
+                    Object.keys(data).forEach(key => {
+                        const user = data[key];
+                        if (user.expired !== 'permanent' && !user.isMainOwner) {
+                            if (new Date(user.expired) < now) {
+                                db.ref('users/' + key).remove();
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        introVideo.addEventListener('ended', () => {
+            introFullscreen.style.display = 'none';
+            initDashboard();
+        });
+
+        skipIntroBtn.addEventListener('click', () => {
+            introVideo.pause();
+            introFullscreen.style.display = 'none';
+            initDashboard();
+        });
+
+        logoutBtn.addEventListener('click', () => { logoutModal.classList.add('active'); });
+        cancelLogoutBtn.addEventListener('click', () => { logoutModal.classList.remove('active'); });
+        confirmLogoutBtn.addEventListener('click', () => {
+            logoutModal.classList.remove('active');
+            localStorage.removeItem('novax_session');
+            currentUser = null;
+            dashboardPage.style.display = 'none';
+            authPage.style.display = 'flex';
+            loginUser.value = '';
+            loginPass.value = '';
+            loginMsg.textContent = '';
+            document.getElementById('resultRedeemContainer').style.display = 'none';
+            document.getElementById('resultRedeemCode').value = '';
+            if(document.getElementById('createRedeemCard')) document.getElementById('createRedeemCard').classList.add('hidden');
+            if(document.getElementById('filterAll')) {
+                document.getElementById('filterAll').style.display = 'block';
+                document.getElementById('filterMember').style.display = 'block';
+                document.getElementById('filterVip').style.display = 'block';
+                document.getElementById('filterReseller').style.display = 'block';
+                document.getElementById('filterOwner').style.display = 'block';
+            }
+            currentFilterRole = 'all';
+        });
+
+        function initDashboard() {
+            dashboardPage.style.display = 'flex';
+        
+            if (currentUser.role === 'owner' || currentUser.role === 'reseller' || currentUser.role === 'developer') {
+                navManage.classList.remove('hidden');
+            } else {
+                navManage.classList.add('hidden');
+            }
+            switchPage('home');
+        
+            setupBugMenu();
+            setupProfile();
+            setupManagePage();
+            listenToChat();
+            initTools();
+            listenToStories();
+            updateDateAndPresence();
+            
+            document.getElementById('resultRedeemContainer').style.display = 'none';
+            document.getElementById('resultRedeemCode').value = '';
+        }
+        
+        function switchPage(target) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            
+            const pageId = `page${target.charAt(0).toUpperCase() + target.slice(1)}`;
+            document.getElementById(pageId).classList.add('active');
+            document.querySelector(`.nav-btn[data-target="${target}"]`).classList.add('active');
+
+            if (target !== 'manage') {
+                document.querySelector('.dash-content').scrollTop = 0;
+            }
+
+            if (target === 'bug') {
+                bugVideo.muted = false; 
+                bugVideo.currentTime = 0; 
+                bugVideo.play().catch(e => console.log("Autoplay diblokir."));
+            } else {
+                bugVideo.muted = true; 
+            }
+
+            if (target === 'tools') {
+                resetTools();
+            }
+        }
+
+        window.openGlobalChat = function() {
+            pageGlobalChat.classList.add('active');
+            setTimeout(() => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 100);
+        };
+
+        window.closeGlobalChat = function() {
+            pageGlobalChat.classList.remove('active');
+        };
+        
+        bottomNav.addEventListener('click', (e) => {
+            const btn = e.target.closest('.nav-btn');
+            if (btn) switchPage(btn.dataset.target);
+        });
+
+        // ============================================================
+        // FITUR UPROLE
+        // ============================================================
+        window.openUpRoleFull = function() {
+            pageUpRoleFull.classList.add('active');
+            renderUpRoleList();
+            listenToTransactionHistory();
+        };
+        window.closeUpRoleFull = function() { pageUpRoleFull.classList.remove('active'); };
+
+        function renderUpRoleList() {
+            const container = document.getElementById('uproleListContainer');
+            container.innerHTML = '';
+            
+            const roleHierarchy = { member: 1, vip: 2, reseller: 3, owner: 4, developer: 5 };
+            const currentLevel = roleHierarchy[currentUser.role] || 0;
+            
+            const allUpgrades = [
+                { type: 'role', from: 'member', to: 'vip', label: 'Member > VIP', price: 2000 },
+                { type: 'role', from: 'vip', to: 'reseller', label: 'VIP > Reseller', price: 5000 },
+                { type: 'role', from: 'reseller', to: 'owner', label: 'Reseller > Owner', price: 10000 },
+                { type: 'exp', from: 'expired', to: 'permanent', label: 'Upgrade Expired ke Permanent', price: 3000 }
+            ];
+
+            db.ref('payment_proofs').orderByChild('username').equalTo(currentUser.username).once('value').then(snapshot => {
+                let hasPending = false;
+                if (snapshot.exists()) {
+                    snapshot.forEach(child => { if (child.val().status === 'pending') hasPending = true; });
+                }
+
+                if (hasPending) {
+                    container.innerHTML = `<div style="text-align:center; padding: 20px; font-family: 'Space Mono'; font-size: 13px; color: var(--danger); font-weight: 700;">⚠️ Kamu masih memiliki pesanan yang sedang diproses. Harap tunggu admin atau batalkan di riwayat bawah.</div>`;
+                    return;
+                }
+
+                allUpgrades.forEach(u => {
+                    const item = document.createElement('div');
+                    item.className = 'uprole-item-full';
+                    
+                    let isAvailable = false;
+                    let disabledReason = '';
+
+                    if (u.type === 'role') {
+                        if (roleHierarchy[u.to] === currentLevel + 1) {
+                            isAvailable = true;
+                        } else if (roleHierarchy[u.to] <= currentLevel) {
+                            disabledReason = 'SUDAH DIMILIKI';
+                        } else {
+                            disabledReason = 'UP ROLE BERTAHAP';
+                        }
+                    } else if (u.type === 'exp') {
+                        if (currentUser.expired !== 'permanent') {
+                            isAvailable = true;
+                        } else {
+                            disabledReason = 'SUDAH PERMANENT';
+                        }
+                    }
+
+                    const btnClass = isAvailable ? 'btn-buy-op' : 'btn-buy-op';
+                    const btnDisabled = isAvailable ? '' : 'disabled';
+                    const btnText = isAvailable ? 'BELI' : disabledReason;
+                    const btnAction = isAvailable ? `onclick="openPaymentModal('${u.to}', ${u.price}, '${u.type}')"` : '';
+
+                    item.innerHTML = `
+                        <div class="uprole-info-full">
+                            <div class="title">${u.label}</div>
+                            <div class="price">Rp ${u.price.toLocaleString('id-ID')}</div>
+                        </div>
+                        <button class="${btnClass}" ${btnDisabled} ${btnAction}>${btnText}</button>
+                    `;
+                    container.appendChild(item);
+                });
+            });
+        }
+
+        function listenToTransactionHistory() {
+            const historyContainer = document.getElementById('historyContainer');
+            const historyList = document.getElementById('historyList');
+            
+            db.ref('payment_proofs').orderByChild('username').equalTo(currentUser.username).on('value', (snapshot) => {
+                historyList.innerHTML = '';
+                if (!snapshot.exists()) { historyContainer.style.display = 'none'; return; }
+                
+                historyContainer.style.display = 'block';
+                const transactions = [];
+                snapshot.forEach(child => { transactions.push({ id: child.key, ...child.val() }); });
+                transactions.sort((a, b) => b.timestamp - a.timestamp);
+
+                transactions.forEach(trx => {
+                    const date = new Date(trx.timestamp).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                    let statusBadge = '';
+                    let actionBtn = '';
+                    let deleteBtn = '';
+                    
+                    if (trx.status === 'pending') {
+                        statusBadge = `<span class="status-pending">Pending</span>`;
+                        actionBtn = `<button class="btn-cancel-tr" onclick="openCancelModal('${trx.id}')">BATAL</button>`;
+                    } else if (trx.status === 'success') {
+                        statusBadge = `<span class="status-success">Sukses</span>`;
+                        deleteBtn = `<button class="btn-cancel-tr" style="border-color:#555; color:#555;" onclick="deleteHistory('${trx.id}')">HAPUS</button>`;
+                    } else if (trx.status === 'canceled') {
+                        statusBadge = `<span class="status-canceled">Dibatalkan</span>`;
+                        deleteBtn = `<button class="btn-cancel-tr" style="border-color:#555; color:#555;" onclick="deleteHistory('${trx.id}')">HAPUS</button>`;
+                    }
+
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    item.innerHTML = `
+                        <div class="info">
+                            <span class="name">${trx.currentRole} > ${trx.targetRole}</span>
+                            <span class="date">${date} | Rp ${trx.price.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap: 8px;">
+                            ${statusBadge}
+                            ${actionBtn}
+                            ${deleteBtn}
+                        </div>
+                    `;
+                    historyList.appendChild(item);
+                });
+            });
+        }
+
+        window.openCancelModal = function(id) {
+            selectedTrxIdToCancel = id;
+            document.getElementById('cancelNameInput').value = '';
+            document.getElementById('cancelPhoneInput').value = '';
+            document.getElementById('cancelTransactionModal').classList.add('active');
+        };
+
+        window.submitCancelTransaction = function() {
+            const name = document.getElementById('cancelNameInput').value.trim();
+            const phone = document.getElementById('cancelPhoneInput').value.trim();
+
+            if (!name || !phone) {
+                showToast('Isi nama dan nomor DANA Anda!');
+                return;
+            }
+
+            showLoading(true);
+            db.ref('payment_proofs/' + selectedTrxIdToCancel).once('value').then(snapshot => {
+                const trx = snapshot.val();
+                if (!trx) {
+                    showLoading(false);
+                    showToast('Transaksi tidak ditemukan.');
+                    return;
+                }
+
+                return db.ref('payment_proofs/' + selectedTrxIdToCancel).update({
+                    status: 'canceled',
+                    refundName: name,
+                    refundPhone: phone
+                }).then(() => {
+                    const cancelMessage = `🔴 *PEMBATALAN TRANSAKSI*\n\n` +
+                                          `👤 Username: \`${currentUser.username}\`\n` +
+                                          `🚀 Role Tujuan: *${trx.targetRole}*\n` +
+                                          `💰 Nominal Refund: *Rp ${trx.price.toLocaleString('id-ID')}*\n\n` +
+                                          `📝 *Data Pengembalian Saldo:*\n` +
+                                          `Nama Penerima: *${name}*\n` +
+                                          `Nomor DANA: *${phone}*\n\n` +
+                                          `_Mohon segera proses pengembalian saldo ke nomor tersebut._`;
+
+                    return fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: TELEGRAM_CHAT_ID,
+                            text: cancelMessage,
+                            parse_mode: 'Markdown'
+                        })
+                    });
+                });
+            }).then(() => {
+                showLoading(false);
+                document.getElementById('cancelTransactionModal').classList.remove('active');
+                showToast('Transaksi dibatalkan. Tunggu admin mengembalikan saldo (maks 1x24 jam).');
+                renderUpRoleList();
+            }).catch(err => {
+                showLoading(false);
+                showToast('Gagal membatalkan transaksi.');
+            });
+        };
+
+        window.deleteHistory = function(id) {
+            if (!confirm('Hapus riwayat transaksi ini?')) return;
+            showLoading(true);
+            db.ref('payment_proofs/' + id).remove().then(() => {
+                showLoading(false);
+                showToast('Riwayat dihapus.');
+            });
+        };
+
+        window.openPaymentModal = function(targetRole, price, type) {
+            currentPurchaseTarget = targetRole;
+            currentPurchasePrice = price;
+            document.getElementById('payAmountText').textContent = 'Rp ' + price.toLocaleString('id-ID');
+            document.getElementById('paymentModal').classList.add('active');
+        };
+
+        window.showPaymentDetail = function(method) {
+            paymentMethodSelected = method;
+            document.getElementById('paymentModal').classList.remove('active');
+            document.getElementById('paymentQrisContainer').style.display = 'none';
+            document.getElementById('paymentDanaContainer').style.display = 'none';
+
+            if (method === 'qris') {
+                document.getElementById('paymentDetailTitle').textContent = 'Scan QRIS';
+                document.getElementById('paymentQrisContainer').style.display = 'block';
+            } else if (method === 'dana') {
+                document.getElementById('paymentDetailTitle').textContent = 'Transfer DANA';
+                document.getElementById('paymentDanaContainer').style.display = 'block';
+            }
+            document.getElementById('paymentDetailModal').classList.add('active');
+        };
+
+        window.submitPaymentProof = function() {
+            if (isProcessingProof) return;
+            isProcessingProof = true;
+
+            const fileInput = document.getElementById('paymentProofFile');
+            const note = document.getElementById('paymentNote').value.trim();
+            if (!fileInput.files.length) { showToast('Pilih bukti transfer!'); isProcessingProof = false; return; }
+
+            const file = fileInput.files[0];
+            
+            // TUTUP POP UP DULU
+            document.getElementById('paymentDetailModal').classList.remove('active');
+            showLoading(true);
+            
+            const startTime = Date.now();
+            const newRef = db.ref('payment_proofs').push();
+            const proofData = {
+                id: newRef.key,
+                username: currentUser.username,
+                currentRole: currentUser.role,
+                targetRole: currentPurchaseTarget,
+                price: currentPurchasePrice,
+                note: note || '-',
+                status: 'pending',
+                timestamp: Date.now()
+            };
+            
+            newRef.set(proofData).then(() => {
+                const message = `🛒 *PESANAN UP ROLE BARU*\n\n` +
+                                `👤 Username: \`${currentUser.username}\`\n` +
+                                `⭐ Role Saat Ini: *${currentUser.role}*\n` +
+                                `🚀 Role Tujuan: *${currentPurchaseTarget}*\n` +
+                                `💰 Harga: *Rp ${currentPurchasePrice.toLocaleString('id-ID')}*\n` +
+                                `📝 Catatan: ${note || '-'}\n\n` +
+                                `_Silakan cek APK untuk memproses pesanan ini._`;
+
+                const formData = new FormData();
+                formData.append('chat_id', TELEGRAM_CHAT_ID);
+                formData.append('caption', message);
+                formData.append('parse_mode', 'Markdown');
+                formData.append('photo', file);
+
+                return fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                    method: 'POST',
+                    body: formData
+                });
+            })
+            .then(res => res.json())
+            .then(data => {
+                const elapsed = Date.now() - startTime;
+                const remaining = Math.max(0, 500 - elapsed);
+                
+                setTimeout(() => {
+                    showLoading(false);
+                    isProcessingProof = false;
+                    if (data.ok) {
+                        showToast('Bukti berhasil dikirim! Mohon tunggu konfirmasi admin.');
+                        fileInput.value = ''; 
+                        document.getElementById('paymentNote').value = '';
+                        renderUpRoleList();
+                    } else {
+                        showToast('Gagal mengirim ke bot.');
+                    }
+                }, remaining);
+            })
+            .catch(err => {
+                showLoading(false);
+                isProcessingProof = false;
+                showToast('Error koneksi ke Telegram.');
+            });
+        };
+
+        // ============================================================
+        // FITUR TANGGAL & ONLINE USER
+        // ============================================================
+        function updateDateAndPresence() {
+            const dateEl = document.getElementById('currentDateText');
+            const timeEl = document.getElementById('currentTimeText');
+
+            function updateClock() {
+                const now = new Date();
+                dateEl.textContent = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                timeEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            }
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            const myConnectionsRef = db.ref('online_users/' + currentUser.username);
+            db.ref('.info/connected').on('value', (snap) => {
+                if (snap.val() === true) {
+                    myConnectionsRef.set(true);
+                    myConnectionsRef.onDisconnect().remove();
+                }
+            });
+
+            db.ref('online_users').on('value', (snapshot) => {
+                const listEl = document.getElementById('onlineUserList');
+                listEl.innerHTML = '';
+                if (snapshot.val()) {
+                    const badge = document.createElement('div');
+                    badge.className = 'online-badge';
+                    badge.textContent = Object.keys(snapshot.val()).length + ' Online';
+                    listEl.appendChild(badge);
+                } else {
+                    listEl.innerHTML = '<div class="online-badge">0 Online</div>';
+                }
+            });
+
+            db.ref('users').on('value', (snapshot) => {
+                const totalEl = document.getElementById('totalUserList');
+                if(totalEl) {
+                    totalEl.innerHTML = '';
+                    if (snapshot.val()) {
+                        const badge = document.createElement('div');
+                        badge.className = 'total-badge';
+                        badge.textContent = Object.keys(snapshot.val()).length + ' User';
+                        totalEl.appendChild(badge);
+                    } else {
+                        totalEl.innerHTML = '<div class="total-badge">0 User</div>';
+                    }
+                }
+            });
+
+            updateHomeProfileCard();
+        }
+
+        function updateHomeProfileCard() {
+            const profileMiniAvatar = document.getElementById('profileHomeAvatar');
+            const profileMiniName = document.getElementById('profileHomeName');
+            const profileMiniRole = document.getElementById('profileHomeRole');
+            const profileMiniExp = document.getElementById('profileHomeExp');
+            
+            if (profileMiniAvatar && profileMiniName && profileMiniRole && profileMiniExp) {
+                profileMiniAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
+                profileMiniName.textContent = currentUser.username;
+                
+                const roleSvg = ICONS[currentUser.role] || ICONS.member;
+                profileMiniRole.className = `profile-mini-role role-${currentUser.role}`;
+                profileMiniRole.innerHTML = `<span class="svg-icon">${roleSvg}</span> ${currentUser.role}`;
+                
+                profileMiniExp.textContent = `Exp: ${formatDate(currentUser.expired)}`;
+            }
+        }
+
+        // ============================================================
+        // FITUR STORY 24 JAM
+        // ============================================================
+        let myActiveStoryKey = null;
+
+        function listenToStories() {
+            db.ref('stories').on('value', (snapshot) => {
+                const data = snapshot.val();
+                storyContainer.innerHTML = '';
+                myActiveStoryKey = null;
+
+                const addBtn = document.createElement('div');
+                addBtn.className = 'story-item add-story';
+                addBtn.innerHTML = `
+                    <div class="story-avatar">
+                        <span class="svg-icon" style="width:24px;height:24px;stroke:var(--danger);"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+                    </div>
+                    <div class="story-name">Storyku</div>
+                `;
+                addBtn.onclick = () => {
+                    if (myActiveStoryKey) {
+                        showToast('Kamu sudah punya story aktif! Hapus dulu atau tunggu 24 jam.');
+                        return;
+                    }
+                    addStoryModal.classList.add('active');
+                };
+                storyContainer.appendChild(addBtn);
+
+                if (data) {
+                    const now = Date.now();
+                    const twentyFourHours = 24 * 60 * 60 * 1000;
+                    
+                    Object.keys(data).forEach(key => {
+                        const story = data[key];
+                        if (now - story.timestamp > twentyFourHours) {
+                            db.ref('stories/' + key).remove();
+                            return;
+                        }
+
+                        if (story.username === currentUser.username) {
+                            myActiveStoryKey = key; 
+                        }
+
+                        const item = document.createElement('div');
+                        item.className = 'story-item';
+                        
+                        const isMyStory = story.username === currentUser.username;
+                        const borderColor = isMyStory ? 'var(--danger)' : 'var(--accent)';
+
+                        item.innerHTML = `
+                            <div class="story-avatar" style="border-color: ${borderColor};">
+                                ${story.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div class="story-name">${story.username}</div>
+                        `;
+                        
+                        item.onclick = () => viewStory(story, key);
+                        storyContainer.appendChild(item);
+                    });
+                }
+            });
+        }
+
+        window.submitStory = function() {
+            if (myActiveStoryKey) {
+                showToast('Kamu hanya bisa membuat 1 story!');
+                return;
+            }
+
+            const text = document.getElementById('storyInputText').value.trim();
+            if (!text) { showToast('Story tidak boleh kosong'); return; }
+
+            showLoading(true);
+            const newStory = {
+                username: currentUser.username,
+                text: text,
+                timestamp: Date.now()
+            };
+
+            db.ref('stories').push(newStory).then(() => {
+                showLoading(false);
+                addStoryModal.classList.remove('active');
+                document.getElementById('storyInputText').value = '';
+                showToast('Story berhasil diposting!');
+            }).catch(err => {
+                showLoading(false);
+                showToast('Gagal memposting story');
+            });
+        };
+
+        function viewStory(story, key) {
+            currentViewingStoryId = key;
+            viewerStoryUser.textContent = story.username;
+            viewerStoryText.textContent = story.text;
+            
+            const diffMins = Math.floor((Date.now() - story.timestamp) / 60000);
+            if (diffMins < 60) {
+                viewerStoryTime.textContent = `${diffMins} menit lalu`;
+            } else {
+                viewerStoryTime.textContent = `${Math.floor(diffMins / 60)} jam lalu`;
+            }
+
+            if (story.username === currentUser.username) {
+                deleteStoryBtn.style.display = 'block';
+            } else {
+                deleteStoryBtn.style.display = 'none';
+            }
+
+            storyViewerModal.classList.add('active');
+        }
+
+        window.deleteStory = function() {
+            if (!currentViewingStoryId) return;
+            if (!confirm('Hapus story ini?')) return;
+
+            showLoading(true);
+            db.ref('stories/' + currentViewingStoryId).remove().then(() => {
+                showLoading(false);
+                storyViewerModal.classList.remove('active');
+                showToast('Story dihapus');
+            });
+        };
+
+        // ============================================================
+        // FITUR GLOBAL CHAT
+        // ============================================================
+        let allUsersCache = {}; 
+
+        db.ref('users').on('value', (snapshot) => {
+            allUsersCache = snapshot.val() || {};
+        });
+
+        function listenToChat() {
+            db.ref('global_chat').limitToLast(30).on('value', (snapshot) => {
+                const data = snapshot.val();
+                chatMessages.innerHTML = '';
+                
+                if (data) {
+                    const chats = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+                    chats.sort((a, b) => a.timestamp - b.timestamp);
+                    
+                    chats.forEach(chat => {
+                        const isMe = chat.sender === currentUser.username;
+                        const bubble = document.createElement('div');
+                        bubble.className = `chat-bubble ${isMe ? 'my-msg' : ''}`;
+                        
+                        let delBtn = '';
+                        if (currentUser.username === 'vbot') {
+                            delBtn = `<button class="del-btn" onclick="deleteChat('${chat.id}')">&times;</button>`;
+                        }
+
+                        let actualRole = chat.role; 
+                        const senderKey = Object.keys(allUsersCache).find(k => allUsersCache[k].username === chat.sender);
+                        if (senderKey) {
+                            actualRole = allUsersCache[senderKey].role;
+                        }
+
+                        const roleSvg = ICONS[actualRole] || ICONS.member;
+                        const roleTagHTML = `<span class="chat-role-tag chat-role-${actualRole}"><span class="svg-icon" style="width:10px;height:10px;display:inline-flex;vertical-align:middle;">${roleSvg}</span> ${actualRole}</span>`;
+
+                        const d = new Date(chat.timestamp);
+                        const timeStr = `${String(d.getHours()).padStart(2, '0')}.${String(d.getMinutes()).padStart(2, '0')}`;
+
+                        bubble.innerHTML = `
+                            <div class="chat-bubble-header">
+                                <span>${isMe ? 'Anda' : escapeHTML(chat.sender)} ${roleTagHTML}</span>
+                                ${delBtn}
+                            </div>
+                            <div class="chat-text">${escapeHTML(chat.text)}</div>
+                            <div style="font-size: 9px; text-align: right; margin-top: 4px; color: #888;">${timeStr}</div>
+                        `;
+                        chatMessages.appendChild(bubble);
+                    });
+                    
+                    if (pageGlobalChat.classList.contains('active')) {
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
+                }
+            });
+        }
+
+        function handleChatEnter(e) {
+            if (e.key === 'Enter') sendChat();
+        }
+
+        function sendChat() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+            
+            const newMsg = {
+                sender: currentUser.username,
+                role: currentUser.role,
+                text: text,
+                timestamp: Date.now()
+            };
+            
+            db.ref('global_chat').push(newMsg).then(() => {
+                chatInput.value = '';
+            });
+        }
+
+        window.deleteChat = function(id) {
+            if (currentUser.username !== 'vbot') return;
+            if (!confirm('Hapus pesan ini?')) return;
+            db.ref('global_chat/' + id).remove();
+        };
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        // ============================================================
+        // FITUR BUG
+        // ============================================================
+        function setupBugMenu() {
+            const availableBugs = BUG_CONFIG[currentUser.role] || [];
+            bugSelect.innerHTML = '';
+            availableBugs.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.id;
+                opt.textContent = b.name;
+                opt.dataset.chars = b.chars;
+                bugSelect.appendChild(opt);
+            });
+        }
+        
+        function generatePayload(targetLength) {
+            const zeroWidth = ['\u200B', '\u200C', '\u200D', '\uFEFF', '\u2060'];
+            let payloadArray = [];
+            for (let i = 0; i < targetLength; i++) {
+                payloadArray.push(zeroWidth[Math.floor(Math.random() * zeroWidth.length)]);
+                if (i > 0 && i % 5000 === 0) {
+                    payloadArray.push('\u2061\u2062\u2063\u2064');
+                }
+            }
+            return payloadArray.join('');
+        }
+        
+        sendBugBtn.addEventListener('click', () => {
+            if (isSendingBug) return;
+            const target = targetNum.value.trim();
+            if (!/^62\d{8,14}$/.test(target)) {
+                showToast('Gunakan format 62xxxx (minimal 10 digit)');
+                return;
+            }
+
+            const opt = bugSelect.options[bugSelect.selectedIndex];
+            const targetChars = parseInt(opt.dataset.chars);
+            
+            isSendingBug = true;
+            sendBugBtn.disabled = true;
+            sendBugBtn.textContent = 'MENGIRIM...';
+            
+            showLoading(true);
+
+            setTimeout(() => {
+                try {
+                    const payload = generatePayload(targetChars);
+                    const waUrl = `https://wa.me/${target}?text=${encodeURIComponent(payload)}`;
+                    
+                    window.open(waUrl, '_blank');
+
+                } catch (e) {
+                    showToast('Gagal: ' + e.message);
+                } finally {
+                    showLoading(false);
+                    isSendingBug = false;
+                    sendBugBtn.disabled = false;
+                    sendBugBtn.innerHTML = `<span class="svg-icon"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></span> KIRIM BUG`;
+                }
+            }, 500); 
+        });
+
+        // ============================================================
+        // FITUR TOOLS
+        // ============================================================
+        function resetTools() {
+            document.querySelectorAll('.tool-detail-page').forEach(p => p.classList.remove('active'));
+            document.getElementById('toolsMainMenu').style.display = 'block';
+            
+            const resFake = document.getElementById('resultFakeData');
+            if(resFake) resFake.style.display = 'none';
+            const textFake = document.getElementById('fakeDataText');
+            if(textFake) textFake.innerText = '';
+
+            const b64In = document.getElementById('b64Input');
+            if(b64In) b64In.value = '';
+            const resB64 = document.getElementById('resultB64');
+            if(resB64) resB64.style.display = 'none';
+            const textB64 = document.getElementById('b64Text');
+            if(textB64) textB64.innerText = '';
+
+            const qrIn = document.getElementById('qrInput');
+            if(qrIn) qrIn.value = '';
+            const qrCont = document.getElementById('qrcodeContainer');
+            if(qrCont) qrCont.innerHTML = '';
+
+            const chkIn = document.getElementById('checkInput');
+            if(chkIn) chkIn.value = '';
+            const resChk = document.getElementById('resultCheck');
+            if(resChk) resChk.style.display = 'none';
+            const textChk = document.getElementById('checkText');
+            if(textChk) textChk.innerText = '';
+
+            const lenIn = document.getElementById('passLength');
+            if(lenIn) lenIn.value = '12';
+            const resPass = document.getElementById('resultPass');
+            if(resPass) resPass.style.display = 'none';
+            const textPass = document.getElementById('passText');
+            if(textPass) textPass.innerText = '';
+
+            const urlIn = document.getElementById('longUrl');
+            if(urlIn) urlIn.value = '';
+            const resShort = document.getElementById('resultShort');
+            if(resShort) resShort.style.display = 'none';
+            const textShort = document.getElementById('shortText');
+            if(textShort) textShort.innerText = '';
+
+            const caseIn = document.getElementById('caseInput');
+            if(caseIn) caseIn.value = '';
+            const resCase = document.getElementById('resultCase');
+            if(resCase) resCase.style.display = 'none';
+            const textCase = document.getElementById('caseText');
+            if(textCase) textCase.innerText = '';
+
+            const wordIn = document.getElementById('wordInput');
+            if(wordIn) wordIn.value = '';
+            const cntChar = document.getElementById('countChar');
+            if(cntChar) cntChar.innerText = '0';
+            const cntWord = document.getElementById('countWord');
+            if(cntWord) cntWord.innerText = '0';
+            const cntLine = document.getElementById('countLine');
+            if(cntLine) cntLine.innerText = '0';
+
+            const colorIn = document.getElementById('colorInput');
+            if(colorIn) colorIn.value = '#ff3b3b';
+            const resColor = document.getElementById('resultColor');
+            if(resColor) {
+                document.getElementById('colorHex').innerText = '#ff3b3b';
+                document.getElementById('colorRgb').innerText = 'rgb(255, 59, 59)';
+                document.getElementById('colorPreview').style.background = '#ff3b3b';
+            }
+
+            const loremCnt = document.getElementById('loremCount');
+            if(loremCnt) loremCnt.value = '3';
+            const resLorem = document.getElementById('resultLorem');
+            if(resLorem) resLorem.style.display = 'none';
+            const textLorem = document.getElementById('loremText');
+            if(textLorem) textLorem.innerText = '';
+
+            const ipIn = document.getElementById('ipInput');
+            if(ipIn) ipIn.value = '';
+            const resIP = document.getElementById('resultIP');
+            if(resIP) resIP.style.display = 'none';
+            const textIP = document.getElementById('ipText');
+            if(textIP) textIP.innerText = '';
+
+            const mdIn = document.getElementById('mdInput');
+            if(mdIn) mdIn.value = '';
+            const textMd = document.getElementById('mdText');
+            if(textMd) textMd.innerHTML = 'Hasil preview akan muncul di sini.';
+
+            const ageIn = document.getElementById('ageBirthDate');
+            if(ageIn) ageIn.value = '';
+            const resAge = document.getElementById('resultAge');
+            if(resAge) resAge.style.display = 'none';
+            const textAge = document.getElementById('ageText');
+            if(textAge) textAge.innerText = '';
+
+            const bmiH = document.getElementById('bmiHeight');
+            if(bmiH) bmiH.value = '';
+            const bmiW = document.getElementById('bmiWeight');
+            if(bmiW) bmiW.value = '';
+            const resBMI = document.getElementById('resultBMI');
+            if(resBMI) resBMI.style.display = 'none';
+            const textBMI = document.getElementById('bmiText');
+            if(textBMI) textBMI.innerText = '';
+
+            const discP = document.getElementById('discPrice');
+            if(discP) discP.value = '';
+            const discPt = document.getElementById('discPercent');
+            if(discPt) discPt.value = '';
+            const resDisc = document.getElementById('resultDisc');
+            if(resDisc) resDisc.style.display = 'none';
+            const textDisc = document.getElementById('discText');
+            if(textDisc) textDisc.innerText = '';
+
+            calcCurrent = '0';
+            calcShouldReset = false;
+            if(calcDisplay) calcDisplay.innerText = '0';
+        }
+
+        window.openTool = function(toolId) {
+            const currentScroll = document.querySelector('.dash-content').scrollTop;
+            window.savedToolScroll = currentScroll;
+
+            document.getElementById('toolsMainMenu').style.display = 'none';
+            document.querySelectorAll('.tool-detail-page').forEach(p => p.classList.remove('active'));
+            document.getElementById('toolDetail_' + toolId).classList.add('active');
+            
+            document.querySelector('.dash-content').scrollTop = 0;
+        };
+
+        window.closeTool = function() {
+            document.querySelectorAll('.tool-detail-page').forEach(p => p.classList.remove('active'));
+            document.getElementById('toolsMainMenu').style.display = 'block';
+            
+            if (window.savedToolScroll !== undefined) {
+                document.querySelector('.dash-content').scrollTop = window.savedToolScroll;
+            }
+        };
+
+        function initTools() {
+            window.calcInput = function(val) {
+                if (calcShouldReset) { calcCurrent = ''; calcShouldReset = false; }
+                if (calcCurrent === '0' && val !== '.') calcCurrent = val;
+                else calcCurrent += val;
+                calcDisplay.innerText = calcCurrent;
+            };
+            window.calcClear = function() { calcCurrent = '0'; calcDisplay.innerText = '0'; };
+            window.calcBackspace = function() {
+                if (calcCurrent.length > 1) calcCurrent = calcCurrent.slice(0, -1);
+                else calcCurrent = '0';
+                calcDisplay.innerText = calcCurrent;
+            };
+            window.calcEqual = function() {
+                try {
+                    let evalStr = calcCurrent.replace(/%/g, '/100');
+                    let result = new Function('return ' + evalStr)();
+                    if (!isFinite(result) || isNaN(result)) throw new Error('Invalid');
+                    result = Math.round(result * 100000000) / 100000000;
+                    calcCurrent = result.toString();
+                    calcDisplay.innerText = calcCurrent;
+                    calcShouldReset = true;
+                } catch (e) {
+                    calcDisplay.innerText = 'Error';
+                    calcCurrent = '';
+                }
+            };
+
+            document.getElementById('btnCalcAge').addEventListener('click', () => {
+                const birthDateVal = document.getElementById('ageBirthDate').value;
+                if(!birthDateVal) { showToast('Pilih tanggal lahir'); return; }
+                const birthDate = new Date(birthDateVal);
+                const today = new Date();
+                let years = today.getFullYear() - birthDate.getFullYear();
+                let months = today.getMonth() - birthDate.getMonth();
+                let days = today.getDate() - birthDate.getDate();
+                if (months < 0 || (months === 0 && days < 0)) { years--; months += 12; }
+                if (days < 0) { const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0); days += prevMonth.getDate(); months--; }
+                document.getElementById('resultAge').style.display = 'block';
+                document.getElementById('ageText').innerHTML = `
+                    <div><strong>Umur:</strong> ${years} Tahun, ${months} Bulan, ${days} Hari</div>
+                    <div style="margin-top:5px;color:#666;">Total Hari: ${Math.floor((today - birthDate) / (1000 * 60 * 60 * 24))} hari</div>
+                `;
+            });
+
+            document.getElementById('btnCalcBMI').addEventListener('click', () => {
+                const h = parseFloat(document.getElementById('bmiHeight').value);
+                const w = parseFloat(document.getElementById('bmiWeight').value);
+                if(!h || !w) { showToast('Isi tinggi dan berat'); return; }
+                const bmi = w / Math.pow(h / 100, 2);
+                let status = ''; let color = '';
+                if (bmi < 18.5) { status = 'Kekurangan Berat Badan'; color = '#3A86FF'; }
+                else if (bmi >= 18.5 && bmi <= 24.9) { status = 'Normal (Ideal)'; color = '#00cc66'; }
+                else if (bmi >= 25 && bmi <= 29.9) { status = 'Kelebihan Berat Badan'; color = '#ffcc00'; }
+                else { status = 'Obesitas'; color = '#E63946'; }
+                document.getElementById('resultBMI').style.display = 'block';
+                document.getElementById('bmiText').innerHTML = `
+                    <div><strong>Skor BMI:</strong> ${bmi.toFixed(1)}</div>
+                    <div><strong>Status:</strong> <span style="color:${color}; font-weight:700;">${status}</span></div>
+                `;
+            });
+
+            document.getElementById('btnCalcDisc').addEventListener('click', () => {
+                const p = parseFloat(document.getElementById('discPrice').value);
+                const d = parseFloat(document.getElementById('discPercent').value);
+                if(!p || !d) { showToast('Isi harga dan diskon'); return; }
+                const potongan = p * (d / 100);
+                const hargaAkhir = p - potongan;
+                document.getElementById('resultDisc').style.display = 'block';
+                document.getElementById('discText').innerHTML = `
+                    <div><strong>Potongan:</strong> Rp ${potongan.toLocaleString('id-ID')}</div>
+                    <div><strong>Harga Akhir:</strong> Rp ${hargaAkhir.toLocaleString('id-ID')}</div>
+                `;
+            });
+
+            document.getElementById('btnFakeData').addEventListener('click', () => {
+                const firstNames = ["Budi", "Siti", "Agus", "Dewi", "Rizky", "Putri", "Fajar", "Indah", "Andi", "Sari"];
+                const lastNames = ["Santoso", "Wijaya", "Kusuma", "Pratama", "Saputra", "Hidayat", "Nugroho", "Lestari"];
+                const randomName = firstNames[Math.floor(Math.random() * firstNames.length)] + " " + lastNames[Math.floor(Math.random() * lastNames.length)];
+                const randomPhone = "08" + Math.floor(Math.random() * 9000000000 + 1000000000);
+                const randomEmail = randomName.toLowerCase().replace(/\s/g, '') + "@gmail.com";
+                document.getElementById('resultFakeData').style.display = 'block';
+                document.getElementById('fakeDataText').innerHTML = `
+                    <strong>Nama:</strong> ${randomName}<br>
+                    <strong>No HP:</strong> ${randomPhone}<br>
+                    <strong>Email:</strong> ${randomEmail}
+                `;
+            });
+
+            document.getElementById('btnB64Enc').addEventListener('click', () => {
+                try {
+                    const text = document.getElementById('b64Input').value;
+                    if(!text) return;
+                    const encoded = btoa(text);
+                    document.getElementById('resultB64').style.display = 'block';
+                    document.getElementById('b64Text').textContent = encoded;
+                } catch(e) { showToast("Gagal encode"); }
+            });
+            document.getElementById('btnB64Dec').addEventListener('click', () => {
+                try {
+                    const text = document.getElementById('b64Input').value;
+                    if(!text) return;
+                    const decoded = atob(text);
+                    document.getElementById('resultB64').style.display = 'block';
+                    document.getElementById('b64Text').textContent = decoded;
+                } catch(e) { showToast("Format Base64 tidak valid"); }
+            });
+
+            document.getElementById('btnGenQR').addEventListener('click', () => {
+                const text = document.getElementById('qrInput').value.trim();
+                if(!text) { showToast("Masukkan teks/link"); return; }
+                const container = document.getElementById('qrcodeContainer');
+                container.innerHTML = ""; 
+                new QRCode(container, {
+                    text: text, width: 150, height: 150,
+                    colorDark : "#111111", colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+            });
+
+            document.getElementById('btnCheckText').addEventListener('click', () => {
+                const text = document.getElementById('checkInput').value;
+                const chars = text.length;
+                const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+                const isUrl = /^(http|https):\/\/[^ "]+$/.test(text.trim());
+                document.getElementById('resultCheck').style.display = 'block';
+                document.getElementById('checkText').innerHTML = `
+                    <strong>Karakter:</strong> ${chars}<br>
+                    <strong>Kata:</strong> ${words}<br>
+                    <strong>Valid URL:</strong> ${isUrl ? 'Ya' : 'Tidak'}
+                `;
+            });
+
+            document.getElementById('btnGenPass').addEventListener('click', () => {
+                const length = parseInt(document.getElementById('passLength').value) || 12;
+                const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+~`|}{[]:;?><,./-=";
+                let password = "";
+                for (let i = 0; i < length; i++) {
+                    password += charset.charAt(Math.floor(Math.random() * charset.length));
+                }
+                document.getElementById('resultPass').style.display = 'block';
+                document.getElementById('passText').textContent = password;
+            });
+
+            document.getElementById('btnShorten').addEventListener('click', () => {
+                const longUrl = document.getElementById('longUrl').value.trim();
+                if (!longUrl.startsWith('http')) { showToast('URL harus diawali http:// atau https://'); return; }
+                const btn = document.getElementById('btnShorten');
+                btn.textContent = 'Memproses...';
+                fetch('https://is.gd/create.php?format=simple&url=' + encodeURIComponent(longUrl))
+                    .then(res => { if (!res.ok) throw new Error('Gagal memendekkan URL'); return res.text(); })
+                    .then(shortUrl => {
+                        document.getElementById('resultShort').style.display = 'block';
+                        document.getElementById('shortText').textContent = shortUrl;
+                    })
+                    .catch(err => { showToast('Gagal memendekkan link (Limit API)'); })
+                    .finally(() => { btn.textContent = 'Pendekkan Link'; });
+            });
+
+            document.getElementById('btnUpper').addEventListener('click', () => {
+                const text = document.getElementById('caseInput').value;
+                document.getElementById('resultCase').style.display = 'block';
+                document.getElementById('caseText').textContent = text.toUpperCase();
+            });
+            document.getElementById('btnLower').addEventListener('click', () => {
+                const text = document.getElementById('caseInput').value;
+                document.getElementById('resultCase').style.display = 'block';
+                document.getElementById('caseText').textContent = text.toLowerCase();
+            });
+            document.getElementById('btnTitle').addEventListener('click', () => {
+                const text = document.getElementById('caseInput').value;
+                const titleCase = text.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                document.getElementById('resultCase').style.display = 'block';
+                document.getElementById('caseText').textContent = titleCase;
+            });
+
+            document.getElementById('btnCountWord').addEventListener('click', () => {
+                const text = document.getElementById('wordInput').value;
+                const chars = text.length;
+                const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+                const lines = text ? text.split(/\n/).length : 0;
+                document.getElementById('countChar').innerText = chars;
+                document.getElementById('countWord').innerText = words;
+                document.getElementById('countLine').innerText = lines;
+            });
+
+            document.getElementById('colorInput').addEventListener('input', (e) => {
+                const hex = e.target.value;
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                document.getElementById('colorHex').innerText = hex.toUpperCase();
+                document.getElementById('colorRgb').innerText = `rgb(${r}, ${g}, ${b})`;
+                document.getElementById('colorPreview').style.background = hex;
+            });
+
+            document.getElementById('btnGenLorem').addEventListener('click', () => {
+                const count = parseInt(document.getElementById('loremCount').value) || 3;
+                const paragraphs = [
+                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+                    "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
+                    "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.",
+                    "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.",
+                    "Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit."
+                ];
+                let result = "";
+                for(let i=0; i<count; i++) {
+                    result += paragraphs[Math.floor(Math.random() * paragraphs.length)] + "<br><br>";
+                }
+                document.getElementById('resultLorem').style.display = 'block';
+                document.getElementById('loremText').innerHTML = result;
+            });
+
+            document.getElementById('btnCalcIP').addEventListener('click', () => {
+                const ip = document.getElementById('ipInput').value.trim();
+                const parts = ip.split('/');
+                if(parts.length !== 2) { showToast('Format harus IP/CIDR (192.168.1.1/24)'); return; }
+                const ipParts = parts[0].split('.').map(Number);
+                const cidr = parseInt(parts[1]);
+                if(ipParts.length !== 4 || ipParts.some(isNaN) || cidr < 0 || cidr > 32) { showToast('IP atau CIDR tidak valid'); return; }
+                const ipInt = (ipParts[0] << 24) | (ipParts[1] << 16) | (ipParts[2] << 8) | ipParts[3];
+                const mask = cidr === 0 ? 0 : ~((1 << (32 - cidr)) - 1);
+                const network = ipInt & mask;
+                const broadcast = network | ~mask;
+                const formatIP = (num) => { return [num >>> 24, (num >> 16) & 255, (num >> 8) & 255, num & 255].join('.'); };
+                const totalHosts = Math.pow(2, 32 - cidr);
+                const usableHosts = totalHosts > 2 ? totalHosts - 2 : totalHosts;
+                document.getElementById('resultIP').style.display = 'block';
+                document.getElementById('ipText').innerHTML = `
+                    <div><strong>Network:</strong> ${formatIP(network)}</div>
+                    <div><strong>Broadcast:</strong> ${formatIP(broadcast)}</div>
+                    <div><strong>Subnet Mask:</strong> ${formatIP(mask)}</div>
+                    <div><strong>Usable Hosts:</strong> ${usableHosts}</div>
+                `;
+            });
+
+            document.getElementById('btnRenderMd').addEventListener('click', () => {
+                const md = document.getElementById('mdInput').value;
+                if(!md) return;
+                const html = marked.parse(md);
+                document.getElementById('mdText').innerHTML = html;
+            });
+        }
+
+        // ============================================================
+        // FITUR PROFIL
+        // ============================================================
+        function setupProfile() {
+            profAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
+            profName.textContent = currentUser.username;
+            profUsername.textContent = currentUser.username;
+            profExpired.textContent = formatDate(currentUser.expired);
+            
+            const roleSvg = ICONS[currentUser.role] || ICONS.member;
+            profRoleTag.className = `role-tag-profile role-${currentUser.role}`;
+            profRoleTag.innerHTML = `<span class="svg-icon">${roleSvg}</span> ${currentUser.role}`;
+            
+            profileMsg.textContent = '';
+        }
+        
+        changePassBtn.addEventListener('click', () => {
+            const newPass = newPassProfile.value.trim();
+            const confirmPass = confirmPassProfile.value.trim();
+            profileMsg.textContent = '';
+            profileMsg.className = 'success-msg';
+        
+            if (!newPass || !confirmPass) {
+                showToast('Isi semua field!');
+                return;
+            }
+            if (newPass.length < 3) {
+                showToast('Password minimal 3 karakter!');
+                return;
+            }
+            if (newPass !== confirmPass) {
+                showToast('Password tidak cocok!');
+                return;
+            }
+        
+            showLoading(true);
+            db.ref('users').orderByChild('username').equalTo(currentUser.username).once('value').then(snapshot => {
+                snapshot.forEach(child => {
+                    child.ref.update({ password: newPass });
+                });
+                showLoading(false);
+                currentUser.password = newPass;
+                localStorage.setItem('novax_session', JSON.stringify(currentUser));
+                
+                showToast('Password berhasil diubah!');
+                newPassProfile.value = '';
+                confirmPassProfile.value = '';
+            });
+        });
+
+        // ============================================================
+        // FITUR MANAGE
+        // ============================================================
+        let allUsersData = [];
+        let currentPage = 1;
+        let currentFilterRole = 'all';
+        const usersPerPage = 10;
+
+        function setupManagePage() {
+            const createRedeemCard = document.getElementById('createRedeemCard');
+            const filterAll = document.getElementById('filterAll');
+            const filterMember = document.getElementById('filterMember');
+            const filterVip = document.getElementById('filterVip');
+            const filterReseller = document.getElementById('filterReseller');
+            const filterOwner = document.getElementById('filterOwner');
+
+            if(filterAll) filterAll.style.display = 'block';
+            if(filterMember) filterMember.style.display = 'block';
+            if(filterVip) filterVip.style.display = 'block';
+            if(filterReseller) filterReseller.style.display = 'block';
+            if(filterOwner) filterOwner.style.display = 'block';
+            
+            currentFilterRole = 'all';
+            if(filterAll) {
+                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+                filterAll.classList.add('active');
+            }
+
+            if (currentUser.role === 'reseller') {
+                document.getElementById('optReseller').style.display = 'none';
+                document.getElementById('optOwner').style.display = 'none';
+                document.getElementById('optPermanent').style.display = 'none';
+                document.getElementById('newExpiredType').value = '30';
+                
+                if(filterReseller) filterReseller.style.display = 'none';
+                if(filterOwner) filterOwner.style.display = 'none';
+                if (createRedeemCard) createRedeemCard.classList.add('hidden');
+                
+            } else if (currentUser.role === 'owner') {
+                document.getElementById('optReseller').style.display = 'block';
+                document.getElementById('optOwner').style.display = 'none'; 
+                document.getElementById('optPermanent').style.display = 'block';
+                document.getElementById('redeemRole').innerHTML = `
+                    <option value="vip">VIP</option>
+                    <option value="reseller">Reseller</option>
+                `; 
+                
+                if (createRedeemCard) createRedeemCard.classList.remove('hidden');
+                
+            } else if (currentUser.role === 'developer') {
+                document.getElementById('optReseller').style.display = 'block';
+                document.getElementById('optOwner').style.display = 'block';
+                document.getElementById('optPermanent').style.display = 'block';
+                document.getElementById('redeemRole').innerHTML = `
+                    <option value="vip">VIP</option>
+                    <option value="reseller">Reseller</option>
+                    <option value="owner">Owner</option>
+                `; 
+                
+                if (createRedeemCard) createRedeemCard.classList.remove('hidden');
+            } else {
+                if (createRedeemCard) createRedeemCard.classList.add('hidden');
+            }
+            
+            listenToUserList();
+            
+            document.getElementById('redeemType').addEventListener('change', (e) => {
+                if (e.target.value === 'role') {
+                    document.getElementById('redeemRoleGroup').classList.remove('hidden');
+                    document.getElementById('redeemExpGroup').classList.add('hidden');
+                } else {
+                    document.getElementById('redeemRoleGroup').classList.add('hidden');
+                    document.getElementById('redeemExpGroup').classList.remove('hidden');
+                }
+            });
+        }
+        
+        createUserBtn.addEventListener('click', () => {
+            const u = newUname.value.trim();
+            const p = newPass.value.trim();
+            let role = newRole.value;
+            let expType = newExpiredType.value;
+        
+            if (!u || !p) { showToast('Isi username & password!'); return; }
+            
+            showLoading(true);
+            getUsers((users) => {
+                if (users.find(x => x.username === u)) {
+                    showLoading(false);
+                    showToast('Username sudah terdaftar!'); return;
+                }
+        
+                if (currentUser.role === 'reseller') {
+                    if (role === 'reseller' || role === 'owner') {
+                        showLoading(false);
+                        showToast('Reseller tidak bisa membuat akun ini!'); return;
+                    }
+                }
+                if (currentUser.role === 'owner') {
+                    if (role === 'owner') {
+                        showLoading(false);
+                        showToast('Owner tidak bisa membuat akun Owner/Developer!'); return;
+                    }
+                }
+        
+                let expired = 'permanent';
+                if (expType !== 'permanent') {
+                    const d = new Date();
+                    d.setDate(d.getDate() + parseInt(expType));
+                    expired = d.toISOString();
+                }
+        
+                const newUser = { username: u, password: p, role: role, expired: expired, createdAt: Date.now() };
+                
+                addUserToDb(newUser).then(() => {
+                    showLoading(false);
+                    showToast('Akun berhasil dibuat!');
+                    newUname.value = '';
+                    newPass.value = '';
+                }).catch(err => {
+                    showLoading(false);
+                    showToast('Gagal: ' + err.message);
+                });
+            });
+        });
+        
+        function listenToUserList() {
+            db.ref('users').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+                
+                allUsersData = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+                
+                if (currentUser.role === 'reseller') {
+                    const btnOwner = document.getElementById('filterOwner');
+                    const btnReseller = document.getElementById('filterReseller');
+                    if(btnOwner) btnOwner.style.display = 'none';
+                    if(btnReseller) btnReseller.style.display = 'none';
+                }
+
+                const totalFiltered = getFilteredUsersCount();
+                const totalPages = Math.ceil(totalFiltered / usersPerPage) || 1;
+                let targetPage = currentPage;
+                if (targetPage > totalPages) targetPage = totalPages;
+                if (targetPage < 1) targetPage = 1;
+                renderUserPage(targetPage);
+            });
+        }
+
+        function getFilteredUsersCount() {
+            let filteredData = allUsersData;
+            if (currentFilterRole !== 'all') {
+                filteredData = filteredData.filter(u => u.role === currentFilterRole);
+            }
+            if (currentUser.role === 'reseller') {
+                filteredData = filteredData.filter(u => 
+                    (u.role === 'member' || u.role === 'vip') || u.username === currentUser.username
+                );
+            }
+            return filteredData.length;
+        }
+
+        window.filterByRole = function(role) {
+            currentFilterRole = role;
+            
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = Array.from(document.querySelectorAll('.filter-btn')).find(btn => btn.textContent.toLowerCase() === (role === 'all' ? 'semua' : role));
+            if (activeBtn) activeBtn.classList.add('active');
+
+            renderUserPage(1);
+        };
+
+        function renderUserPage(page) {
+            currentPage = page;
+            userListContainer.innerHTML = '';
+            const paginationContainer = document.getElementById('paginationContainer');
+            paginationContainer.innerHTML = '';
+
+            let filteredData = allUsersData;
+            if (currentFilterRole !== 'all') {
+                filteredData = filteredData.filter(u => u.role === currentFilterRole);
+            }
+
+            if (currentUser.role === 'reseller') {
+                filteredData = filteredData.filter(u => 
+                    (u.role === 'member' || u.role === 'vip') || u.username === currentUser.username
+                );
+            }
+
+            filteredData.sort((a, b) => {
+                if (a.username === currentUser.username) return -1;
+                if (b.username === currentUser.username) return 1;
+                const timeA = a.createdAt || 0;
+                const timeB = b.createdAt || 0;
+                return timeA - timeB; 
+            });
+
+            const startIndex = (page - 1) * usersPerPage;
+            const endIndex = startIndex + usersPerPage;
+            const paginatedUsers = filteredData.slice(startIndex, endIndex);
+
+            if (paginatedUsers.length === 0) {
+                userListContainer.innerHTML = '<div style="text-align:center; padding: 20px; font-family: Space Mono; font-size: 12px; color: #777;">Belum ada pengguna dengan role ini.</div>';
+            } else {
+                paginatedUsers.forEach(u => {
+                    const row = document.createElement('div');
+                    row.className = 'user-list-row';
+                    
+                    const isSelf = u.username === currentUser.username;
+                    const isMainOwner = u.isMainOwner;
+                    
+                    let actionButtons = '';
+                    
+                    let canEdit = false;
+                    if (currentUser.role === 'developer' && !isSelf) canEdit = true;
+                    if (currentUser.role === 'owner' && (u.role === 'member' || u.role === 'vip' || u.role === 'reseller')) canEdit = true;
+                    if (currentUser.role === 'reseller' && (u.role === 'member' || u.role === 'vip')) canEdit = true;
+
+                    if (canEdit) {
+                        actionButtons += `<button class="btn-edit" onclick="openEditUser('${u.id}')">EDIT</button>`;
+                    }
+                    
+                    let canDelete = false;
+                    if (currentUser.role === 'developer' && !isSelf) canDelete = true;
+                    if (currentUser.role === 'owner' && (u.role === 'member' || u.role === 'vip' || u.role === 'reseller')) canDelete = true;
+                    if (currentUser.role === 'reseller' && (u.role === 'member' || u.role === 'vip')) canDelete = true;
+
+                    if (canDelete) {
+                        actionButtons += `<button onclick="deleteUser('${u.id}', '${u.username}')">HAPUS</button>`;
+                    }
+
+                    row.innerHTML = `
+                        <div class="user-row-info">
+                            <div class="uname">${u.username} ${isSelf ? '(Anda)' : ''}</div>
+                            <div class="uexp">Exp: ${formatDate(u.expired)} | Role: ${u.role}</div>
+                        </div>
+                        <div class="user-row-actions">
+                            ${actionButtons}
+                        </div>
+                    `;
+                    userListContainer.appendChild(row);
+                });
+            }
+
+            const totalPages = Math.ceil(filteredData.length / usersPerPage);
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'page-num-btn' + (i === page ? ' active' : '');
+                btn.textContent = i;
+                btn.onclick = () => {
+                    const dashContent = document.querySelector('.dash-content');
+                    const currentScrollPos = dashContent.scrollTop;
+                    
+                    renderUserPage(i);
+                    
+                    dashContent.scrollTop = currentScrollPos;
+                };
+                paginationContainer.appendChild(btn);
+            }
+        }
+        
+        window.deleteUser = function(id, username) {
+            if (currentUser.role !== 'owner' && currentUser.role !== 'reseller' && currentUser.role !== 'developer') {
+                showToast('Akses ditolak!');
+                return;
+            }
+            if (!confirm(`Hapus akun ${username}?`)) return;
+            
+            showLoading(true);
+            const pageBeforeDelete = currentPage; 
+            db.ref(`users/${id}`).remove().then(() => {
+                showLoading(false);
+                showToast('Akun dihapus.');
+                setTimeout(() => {
+                    const totalFiltered = getFilteredUsersCount();
+                    const totalPages = Math.ceil(totalFiltered / usersPerPage) || 1;
+                    let targetPage = pageBeforeDelete;
+                    if (targetPage > totalPages) targetPage = totalPages;
+                    if (targetPage < 1) targetPage = 1;
+                    renderUserPage(targetPage);
+                }, 50);
+            });
+        };
+
+        window.openEditUser = function(id) {
+            editingUserId = id;
+            db.ref('users/' + id).once('value').then((snapshot) => {
+                const user = snapshot.val();
+                if (!user) return;
+                
+                editUserUname.value = user.username;
+                editUserRole.value = user.role;
+                editUserExpType.value = "0"; 
+                
+                if (currentUser.role === 'reseller') {
+                    editOptReseller.style.display = 'none';
+                    editOptOwner.style.display = 'none';
+                    editOptPermanent.style.display = 'none';
+                    
+                    const options = editUserExpType.options;
+                    for(let i=0; i<options.length; i++){
+                        if(options[i].value !== '0' && options[i].value !== '1' && options[i].value !== '7' && options[i].value !== '15' && options[i].value !== '30'){
+                            options[i].style.display = 'none';
+                        } else {
+                            options[i].style.display = 'block';
+                        }
+                    }
+                    
+                    if (user.expired === 'permanent') {
+                        editUserExpType.disabled = true;
+                    } else {
+                        editUserExpType.disabled = false;
+                    }
+                } else {
+                    editOptReseller.style.display = 'block';
+                    editOptOwner.style.display = 'block';
+                    editOptPermanent.style.display = 'block';
+                    editUserExpType.disabled = false;
+                }
+                
+                editUserModal.classList.add('active');
+            });
+        };
+
+        window.saveUserEdit = function() {
+            if (!editingUserId) return;
+            
+            const newRole = editUserRole.value;
+            let expType = editUserExpType.value;
+            
+            if (currentUser.role === 'reseller') {
+                if (newRole === 'reseller' || newRole === 'owner') {
+                    showToast('Reseller hanya bisa up role sampai VIP!');
+                    return;
+                }
+                if (expType === 'permanent') {
+                    showToast('Reseller tidak bisa menjadikan permanent!');
+                    return;
+                }
+            }
+            
+            showLoading(true);
+            db.ref('users/' + editingUserId).once('value').then((snapshot) => {
+                const user = snapshot.val();
+                
+                if (currentUser.role === 'reseller' && user.expired === 'permanent' && expType !== '0') {
+                    showLoading(false);
+                    showToast('Tidak bisa mengubah waktu expired akun permanent!');
+                    return;
+                }
+                
+                let updateData = { role: newRole };
+                
+                if (expType !== '0') {
+                    if (expType === 'permanent') {
+                        updateData.expired = 'permanent';
+                    } else {
+                        let baseDate = new Date();
+                        if (user.expired !== 'permanent') {
+                            const oldExp = new Date(user.expired);
+                            if (oldExp > new Date()) {
+                                baseDate = oldExp; 
+                            }
+                        }
+                        baseDate.setDate(baseDate.getDate() + parseInt(expType));
+                        updateData.expired = baseDate.toISOString();
+                    }
+                }
+
+                // LOGIKA PENYELESAIAN TRANSAKSI OTOMATIS
+                return db.ref('payment_proofs').orderByChild('username').equalTo(user.username).once('value').then(trxSnap => {
+                    let pendingKey = null;
+                    if (trxSnap.exists()) {
+                        trxSnap.forEach(trxChild => {
+                            if (trxChild.val().status === 'pending') {
+                                pendingKey = trxChild.key;
+                            }
+                        });
+                    }
+                    // Update user
+                    return db.ref('users/' + editingUserId).update(updateData).then(() => {
+                        // Jika ada transaksi pending, set jadi sukses
+                        if (pendingKey) {
+                            return db.ref('payment_proofs/' + pendingKey).update({ status: 'success' });
+                        }
+                    });
+                });
+                
+            }).then(() => {
+                showLoading(false);
+                editUserModal.classList.remove('active');
+                showToast('Data pengguna berhasil diupdate!');
+            }).catch(err => {
+                showLoading(false);
+                showToast('Gagal update: ' + err.message);
+            });
+        };
+
+        // ============================================================
+        // FITUR REDEEM CODE
+        // ============================================================
+        function generateRedeemCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let part1 = '', part2 = '';
+            for(let i=0; i<4; i++) part1 += chars.charAt(Math.floor(Math.random() * chars.length));
+            for(let i=0; i<4; i++) part2 += chars.charAt(Math.floor(Math.random() * chars.length));
+            return `NOVAX-${part1}-${part2}`;
+        }
+
+        document.getElementById('createRedeemBtn').addEventListener('click', () => {
+            if(currentUser.role !== 'owner' && currentUser.role !== 'developer') return;
+            
+            const type = document.getElementById('redeemType').value;
+            const roleVal = document.getElementById('redeemRole').value;
+            const expVal = document.getElementById('redeemExp').value;
+
+            if(currentUser.role === 'owner' && roleVal === 'owner') {
+                showToast('Owner tidak bisa membuat kode redeem Owner!'); return;
+            }
+            
+            const code = generateRedeemCode();
+            const redeemData = {
+                code: code,
+                type: type,
+                value: type === 'role' ? roleVal : expVal,
+                timestamp: Date.now()
+            };
+
+            db.ref('redeems/' + code).set(redeemData).then(() => {
+                document.getElementById('resultRedeemContainer').style.display = 'flex';
+                document.getElementById('resultRedeemCode').value = code;
+                
+                navigator.clipboard.writeText(code).then(() => {
+                    showToast('Kode berhasil dibuat & disalin!');
+                }).catch(() => {
+                    showToast('Kode berhasil dibuat (Gagal menyalin otomatis)');
+                });
+            });
+        });
+
+        document.getElementById('redeemBtn').addEventListener('click', () => {
+            const inputCode = document.getElementById('redeemInput').value.toUpperCase().trim();
+            if (!inputCode) { showToast('Masukkan kode terlebih dahulu!'); return; }
+
+            showLoading(true);
+            db.ref('redeems/' + inputCode).once('value').then(snapshot => {
+                const data = snapshot.val();
+                if (!data) {
+                    showLoading(false);
+                    showToast('Kode tidak valid atau sudah dipakai!');
+                    return;
+                }
+
+                const now = Date.now();
+                const twentyFourHours = 24 * 60 * 60 * 1000;
+                if (now - data.timestamp > twentyFourHours) {
+                    db.ref('redeems/' + inputCode).remove();
+                    showLoading(false);
+                    showToast('Kode sudah kadaluarsa (lewat 24 jam)!');
+                    return;
+                }
+
+                let updateData = {};
+                if (data.type === 'role') {
+                    const roleHierarchy = { member: 1, vip: 2, reseller: 3, owner: 4, developer: 5 };
+                    const currentLevel = roleHierarchy[currentUser.role] || 0;
+                    const targetLevel = roleHierarchy[data.value] || 0;
+
+                    if (targetLevel <= currentLevel) {
+                        showLoading(false);
+                        showToast(`Role kamu saat ini (${currentUser.role}) lebih tinggi / sama dengan kode redeem.`);
+                        return;
+                    }
+                    updateData.role = data.value;
+                } else if (data.type === 'exp') {
+                    if (data.value === 'permanent') {
+                        updateData.expired = 'permanent';
+                    } else {
+                        let baseDate = new Date();
+                        if (currentUser.expired !== 'permanent') {
+                            const oldExp = new Date(currentUser.expired);
+                            if (oldExp > new Date()) baseDate = oldExp;
+                        }
+                        baseDate.setDate(baseDate.getDate() + parseInt(data.value));
+                        updateData.expired = baseDate.toISOString();
+                    }
+                }
+
+                db.ref('users').orderByChild('username').equalTo(currentUser.username).once('value').then(userSnap => {
+                    userSnap.forEach(child => {
+                        child.ref.update(updateData);
+                    });
+                    
+                    Object.assign(currentUser, updateData);
+                    localStorage.setItem('novax_session', JSON.stringify(currentUser));
+                    
+                    db.ref('redeems/' + inputCode).remove();
+                    
+                    showLoading(false);
+                    showToast('Redeem Berhasil! Hadiah telah ditambahkan.');
+                    document.getElementById('redeemInput').value = '';
+                    
+                    setupProfile();
+                    updateHomeProfileCard(); 
+                    
+                    setupBugMenu();
+                    if (currentUser.role === 'owner' || currentUser.role === 'reseller' || currentUser.role === 'developer') {
+                        navManage.classList.remove('hidden');
+                    }
+                });
+            }).catch(err => {
+                showLoading(false);
+                showToast('Terjadi kesalahan sistem.');
+            });
+        });
+
+    </script>
+</body>
+</html>
